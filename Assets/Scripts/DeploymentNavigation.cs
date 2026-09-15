@@ -8,17 +8,30 @@ namespace FpsManager
     public sealed class DeploymentNavigation
     {
         readonly List<Rect> obstacles = new List<Rect>();
+        readonly List<Rect> sightBlockers = new List<Rect>();
         readonly bool[] open = new bool[10000];
         public DeploymentNavigation(List<Rect> geometry)
         {
-            foreach (var r in geometry) obstacles.Add(Rect.MinMaxRect(r.xMin-.66f,r.yMin-.66f,r.xMax+.66f,r.yMax+.66f));
+            foreach (var r in geometry)
+            {
+                sightBlockers.Add(r);
+                obstacles.Add(Rect.MinMaxRect(r.xMin-.66f,r.yMin-.66f,r.xMax+.66f,r.yMax+.66f));
+            }
             for(int i=0;i<open.Length;i++) open[i]=Clear(Point(i),Point(i));
         }
         static Vector2 Point(int i) { return new Vector2(i%100+.5f,i/100+.5f); }
         public bool Clear(Vector2 a, Vector2 b)
         {
             if(a.x<.7f||a.y<.7f||a.x>99.3f||a.y>99.3f||b.x<.7f||b.y<.7f||b.x>99.3f||b.y>99.3f) return false;
-            foreach(var r in obstacles)
+            return !Blocked(obstacles,a,b);
+        }
+        // Line of sight uses the raw geometry: movement clearance would wrongly cut
+        // sight lines that run close along a wall face. Every Wall and Cover box blocks
+        // sight completely; there is no height model and no partial cover yet.
+        public bool SightClear(Vector2 a, Vector2 b) { return !Blocked(sightBlockers,a,b); }
+        static bool Blocked(List<Rect> rects, Vector2 a, Vector2 b)
+        {
+            foreach(var r in rects)
             {
                 float enter=0,exit=1; Vector2 delta=b-a;
                 bool hit=true;
@@ -35,9 +48,9 @@ namespace FpsManager
                         if(enter>exit) { hit=false; break; }
                     }
                 }
-                if(hit) return false;
+                if(hit) return true;
             }
-            return true;
+            return false;
         }
         int Nearest(Vector2 point, bool visible)
         {

@@ -15,6 +15,12 @@ namespace FpsManager
         int selected, ctTeam;
         readonly List<Rect> obstacles = new List<Rect>();
         DeploymentNavigation navigation;
+        VisionSystem vision;
+        readonly VisionSettings visionSettings = new VisionSettings();
+        readonly int[] teamIndex = new int[10];
+        readonly Vector2[] visionPositions = new Vector2[10];
+        readonly Vector2[] visionFacing = new Vector2[10];
+        bool fogOfWar = true;
         readonly int[] assignments = { 0, 1, 2, 0, 2, 0, 1, 2, 0, 2 };
         readonly List<List<Vector2>> routes = new List<List<Vector2>>();
         readonly int[] routeSteps = new int[10];
@@ -39,6 +45,8 @@ namespace FpsManager
             if (Data.teams.Length != 2 || Data.players.Length != 10) throw new InvalidOperationException("Expected two teams and ten players.");
             BuildMap();
             navigation = new DeploymentNavigation(obstacles);
+            for (int i = 0; i < Data.players.Length; i++) teamIndex[i] = Data.players[i].teamId == Data.teams[0].id ? 0 : 1;
+            vision = new VisionSystem(navigation, visionSettings, Data.players.Length);
             ctMaterial=Material(new Color(.18f,.65f,1)); tMaterial=Material(new Color(1,.62f,.18f));
             mapTexture = new RenderTexture(900,900,16);
             eyeTexture = new RenderTexture(800,450,16);
@@ -116,6 +124,7 @@ namespace FpsManager
         {
             deploymentStarted=false; paused=false; elapsed=0; DeploymentComplete=false;
             routes.Clear(); Array.Clear(routeSteps,0,routeSteps.Length); preparationError=null;
+            if(vision!=null) vision.Reset();
             int ct=0,t=0;
             for(int i=0;i<actors.Count;i++)
             {
@@ -159,9 +168,35 @@ namespace FpsManager
         }
         void Update() { if(Data!=null&&error==null) SimulateMovement(Time.deltaTime); }
         void LateUpdate() { if(eyeCamera!=null&&actors.Count>selected) Select(selected); }
+        public VisionSystem Vision { get { return vision; } }
+        public DeploymentNavigation Navigation { get { return navigation; } }
+        public int AlliedTeamIndex { get { return Data.teams[0].id==AlliedTeamId?0:1; } }
+        public int TeamIndexOf(int player) { return teamIndex[player]; }
+        public static readonly string[] CtZoneNames = { "B site", "Mid / Arch", "A site" };
+        public static readonly string[] TZoneNames = { "Banana", "Mid", "Apartments" };
+        public Vector2 DeploymentZone(bool counterTerrorist, int zone) { return (counterTerrorist?ctZones:tZones)[zone]; }
+        public Vector2 MapPosition(int player)
+        {
+            Vector3 p=actors[player].transform.position; return new Vector2(p.x,100-p.z);
+        }
+        // Detection runs whenever the clock runs, including while players stand still
+        // in preparation, so team knowledge is always in step with the shown positions.
+        void UpdateVision(float delta)
+        {
+            if(vision==null||Data==null) return;
+            for(int i=0;i<actors.Count;i++)
+            {
+                Vector3 p=actors[i].transform.position,f=actors[i].transform.forward;
+                visionPositions[i]=new Vector2(p.x,100-p.z);
+                visionFacing[i]=new Vector2(f.x,-f.z);
+            }
+            vision.Tick(delta,visionPositions,visionFacing,teamIndex);
+        }
         public void SimulateMovement(float delta)
         {
-            if(!deploymentStarted||paused||DeploymentComplete) return;
+            float tick=Mathf.Min(delta,.1f);
+            if(paused) return;
+            if(!deploymentStarted||DeploymentComplete) { UpdateVision(tick); return; }
             bool complete=true;
             for(int i=0;i<actors.Count;i++)
             {
@@ -180,7 +215,8 @@ namespace FpsManager
                 }
                 if(routeSteps[i]<routes[i].Count) complete=false;
             }
-            elapsed+=Mathf.Min(delta,.1f); DeploymentComplete=complete;
+            elapsed+=tick; DeploymentComplete=complete;
+            UpdateVision(tick);
         }
         public void ValidateMovementGeometry()
         {
@@ -197,12 +233,20 @@ namespace FpsManager
             if(Data==null) return;
             GUI.matrix=Matrix4x4.Scale(new Vector3(Screen.width/1280f,Screen.height/800f,1));
             GUI.Label(new Rect(20,12,1000,25),"FPS MANAGER / YOUR TEAM: SPIRIT / OPPONENT: FALCONS");
-            GUI.Label(new Rect(20,39,1200,25),(deploymentStarted?"MOVEMENT TEST / "+elapsed.ToString("F1")+"s":"PREPARATION / Assign zones before starting")+" | Combat / economy: not connected");
+            GUI.Label(new Rect(20,39,1200,25),(deploymentStarted?"MOVEMENT TEST / "+elapsed.ToString("F1")+"s":"PREPARATION / Assign zones before starting")+" | Detection: line of sight only | Combat / economy: not connected");
             Rect map=new Rect(20,80,650,650); GUI.DrawTexture(map,mapTexture,ScaleMode.StretchToFill);
+            int viewerTeam=AlliedTeamIndex;
             for(int i=0;i<actors.Count;i++)
             {
-                var p=mapCamera.WorldToViewportPoint(actors[i].transform.position);
-                if(GUI.Button(new Rect(map.x+p.x*map.width-31,map.y+(1-p.y)*map.height-11,62,22),Data.players[i].handle)) Select(i);
+                bool own=teamIndex[i]==viewerTeam;
+                var contact=vision.Knowledge(viewerTeam,i);
+                Vector2 shown;
+                if(own||!fogOfWar) shown=MapPosition(i);
+                else if(contact.known) shown=contact.lastKnownPosition;
+                else continue;   // no contact: the marker is not drawn at all
+                var p=mapCamera.WorldToViewportPoint(World(shown));
+                string label=own||!fogOfWar||contact.visible?Data.players[i].handle:Data.players[i].handle+"?";
+                if(GUI.Button(new Rect(map.x+p.x*map.width-31,map.y+(1-p.y)*map.height-11,62,22),label)) Select(i);
             }
             GUI.Label(new Rect(683,76,570,24),"SELECTED PLAYER / FIRST PERSON");
             GUI.DrawTexture(new Rect(685,104,570,321),eyeTexture,ScaleMode.StretchToFill);
@@ -214,7 +258,7 @@ namespace FpsManager
             for(int i=0;i<player.weapons.Length;i++) GUI.Label(new Rect(0,i*21,520,21),player.weapons[i].weapon+"   "+new string('*',player.weapons[i].stars));
             GUI.EndScrollView();
             bool selectedCt=player.teamId==Data.teams[ctTeam].id;
-            string[] zoneNames=selectedCt?new[]{"B site","Mid / Arch","A site"}:new[]{"Banana","Mid","Apartments"};
+            string[] zoneNames=selectedCt?CtZoneNames:TZoneNames;
             if(!deploymentStarted && IsAlliedPlayer(selected))
             {
                 GUI.Label(new Rect(685,537,570,22),"Initial zone / "+player.handle);
@@ -230,6 +274,15 @@ namespace FpsManager
                     if(GUI.Button(new Rect(685+n++*114,614+team*62,110,27),name)) Select(index);
                 }
             }
+            string contacts="";
+            for(int i=0;i<Data.players.Length;i++)
+            {
+                if(teamIndex[i]==viewerTeam) continue;
+                var contact=vision.Knowledge(viewerTeam,i);
+                if(!contact.known) continue;
+                contacts+=(contacts.Length>0?"  ":"")+Data.players[i].handle+(contact.visible?"*":" "+contact.age.ToString("F1")+"s");
+            }
+            GUI.Label(new Rect(685,708,570,22),"SPIRIT CONTACTS / "+(contacts.Length>0?contacts:"none")+"   (* = seen now)");
             if(!deploymentStarted)
             {
                 if(GUI.Button(new Rect(20,741,180,32),"Start movement test"))
@@ -241,8 +294,9 @@ namespace FpsManager
                 if(GUI.Button(new Rect(20,741,180,32),paused?"Resume":"Pause")) paused=!paused;
                 if(GUI.Button(new Rect(210,741,180,32),"Reset to preparation")) PlaceTeams();
             }
-            if(preparationError!=null) GUI.Label(new Rect(400,741,860,28),preparationError);
-            GUI.Label(new Rect(20,776,1240,24),"Blue: CT | Orange: T | Click a name to change POV | Ratings are prototype estimates");
+            if(GUI.Button(new Rect(400,741,180,32),fogOfWar?"Fog of war: ON":"Fog of war: OFF")) fogOfWar=!fogOfWar;
+            if(preparationError!=null) GUI.Label(new Rect(590,741,670,28),preparationError);
+            GUI.Label(new Rect(20,776,1240,24),"Blue: CT | Orange: T | Click a name to change POV | Map hides Falcons until Spirit spots them; '?' marks a remembered position");
         }
         void OnDestroy()
         {
