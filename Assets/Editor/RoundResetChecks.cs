@@ -35,6 +35,9 @@ public static class RoundResetChecks
         {
             int before=game.CompletedRounds;
             game.BeginRound();
+            // Grenades are reissued for every round; weapons and credits are not touched.
+            foreach(var item in PlayerMatchState.Consumables)
+                if(Array.IndexOf(game.MatchState(0).equipment,item)<0) throw new Exception("Utility not restocked: "+item);
             for(int tick=0;tick<4000&&game.CompletedRounds==before;tick++) game.AdvanceFrame(.05f);
             if(game.CompletedRounds!=before+1||game.Director.Phase!=RoundPhase.Preparation||game.RoundMode) throw new Exception("Automatic reset failed");
             if(game.LastRoundOutcome==RoundOutcome.None) throw new Exception("Result lost");
@@ -44,7 +47,11 @@ public static class RoundResetChecks
             for(int tick=0;tick<100;tick++) game.AdvanceFrame(.05f);
             if(game.CompletedRounds!=before+1||game.Combat.Shots!=0||game.Vision.KnownCount(0)!=0) throw new Exception("Preparation kept simulating");
             game.AssignZone(0,2);
-            if(game.MatchState(0).credits!=4321||string.Join(",",game.MatchState(0).equipment)!="awp,usp_s") throw new Exception("Inventory lost");
+            if(game.MatchState(0).credits!=4321) throw new Exception("Credits lost");
+            var kept=new System.Collections.Generic.List<string>();
+            foreach(var item in game.MatchState(0).equipment)
+                if(Array.IndexOf(PlayerMatchState.Consumables,item)<0) kept.Add(item);
+            if(string.Join(",",kept.ToArray())!="awp,usp_s") throw new Exception("Weapons lost");
             game.ValidateMovementGeometry();
         }
         Debug.Log("RESET_CASE_OK automatic-round-reset-and-persistence");

@@ -167,6 +167,9 @@ namespace FpsManager
             result.SiteNames = new[] { "A", "B" };
             result.Staging = new Vector2[sites.Length];
             result.HoldRing = new Vector2[sites.Length][];
+            result.Approaches = new Vector2[sites.Length][];
+            result.PeekPost = new Vector2[sites.Length][];
+            result.CoverPost = new Vector2[sites.Length][];
             var spawn = new Vector2(0,0);
             foreach(var p in ctPositions) spawn += p;
             spawn /= ctPositions.Length;
@@ -174,8 +177,72 @@ namespace FpsManager
             {
                 result.Staging[i] = BackAlongApproach(spawn, sites[i], 16f);
                 result.HoldRing[i] = Ring(sites[i], roundSettings.holdRadius, 5);
+                result.Approaches[i] = EntryMouths(sites[i]);
+                result.PeekPost[i] = new Vector2[result.Approaches[i].Length];
+                result.CoverPost[i] = new Vector2[result.Approaches[i].Length];
+                for(int m=0;m<result.Approaches[i].Length;m++)
+                {
+                    Vector2 peek, cover;
+                    HoldingPair(sites[i], result.Approaches[i][m], out peek, out cover);
+                    result.PeekPost[i][m] = peek;
+                    result.CoverPost[i][m] = cover;
+                }
             }
             return result;
+        }
+        // The mouths attackers actually come through, taken from their own routes rather
+        // than guessed. A site with three ways in gets three of them, so defenders can
+        // cover different ones instead of all staring down the same line.
+        Vector2[] EntryMouths(Vector2 site)
+        {
+            var mouths=new List<Vector2>();
+            foreach(var lane in tZones)
+            {
+                List<Vector2> route;
+                try { route=navigation.Route(lane,site,new List<Vector2>()); }
+                catch(InvalidOperationException) { continue; }
+                Vector2 mouth=lane;
+                for(int i=route.Count-1;i>=0;i--)
+                {
+                    mouth=route[i];
+                    if(Vector2.Distance(route[i],site)>roundSettings.siteRadius) break;
+                }
+                bool duplicate=false;
+                foreach(var existing in mouths) if(Vector2.Distance(existing,mouth)<8f) duplicate=true;
+                if(!duplicate) mouths.Add(mouth);
+            }
+            if(mouths.Count==0) mouths.Add(site);
+            return mouths.ToArray();
+        }
+        // A place to hold one mouth from: somewhere on the site that can see it, paired
+        // with a spot a step away that cannot. The player lives on the first and ducks to
+        // the second while reloading or blinded.
+        void HoldingPair(Vector2 site, Vector2 mouth, out Vector2 peek, out Vector2 cover)
+        {
+            peek=site; cover=site;
+            float best=float.MinValue;
+            for(float dx=-10f;dx<=10f;dx+=1.5f) for(float dy=-10f;dy<=10f;dy+=1.5f)
+            {
+                var candidate=site+new Vector2(dx,dy);
+                float toMouth=Vector2.Distance(candidate,mouth);
+                if(toMouth<4f||toMouth>32f) continue;
+                if(!navigation.Clear(candidate,candidate)||!navigation.Clear(site,candidate)) continue;
+                if(!navigation.SightClear(candidate,mouth)) continue;
+                Vector2 shelter=candidate; bool sheltered=false;
+                for(int step=0;step<8&&!sheltered;step++)
+                {
+                    float angle=step*45f*Mathf.Deg2Rad;
+                    var spot=candidate+new Vector2(Mathf.Cos(angle),Mathf.Sin(angle))*3f;
+                    if(!navigation.Clear(spot,spot)||!navigation.Clear(candidate,spot)) continue;
+                    if(navigation.SightClear(spot,mouth)) continue;
+                    shelter=spot; sheltered=true;
+                }
+                // Close to the mouth beats far from it, and a spot with somewhere to duck
+                // beats one without. Staying near the site keeps the bomb covered.
+                float score=(sheltered?40f:0f)-toMouth-Vector2.Distance(candidate,site)*.5f;
+                if(score<=best) continue;
+                best=score; peek=candidate; cover=sheltered?shelter:candidate;
+            }
         }
         // Walks back along the defenders' own approach to find where they regroup. Using
         // the route rather than a fixed offset keeps the spot reachable and behind them.
@@ -404,6 +471,7 @@ namespace FpsManager
                 destinations[i]=homeAnchor[i];
             }
             ClearRoutes();
+            foreach(var state in matchState) state.RestockUtility();
             autonomy=new PlayerAutonomy(roundSeed,navigation);
             vision.LegacyFootsteps=false; vision.ExtraSight=autonomy.ClearSight; vision.Blinded=autonomy.Blinded;
             combat.AmmoEnabled=true;
@@ -427,6 +495,10 @@ namespace FpsManager
         public Vector2 MapPosition(int player)
         {
             Vector3 p=actors[player].transform.position; return new Vector2(p.x,100-p.z);
+        }
+        public Vector2 MapFacing(int player)
+        {
+            Vector3 f=actors[player].transform.forward; return new Vector2(f.x,-f.z);
         }
         public CombatSystem Combat { get { return combat; } }
         public bool IsAlive(int player) { return combat==null||combat.Alive(player); }

@@ -8,7 +8,7 @@ namespace FpsManager
     public enum RoundOutcome { None, TerroristsEliminated, CounterTerroristsEliminated, BombExploded, BombDefused, TimeExpired }
 
     // What a player is doing right now. Derived state, recomputed every tick.
-    public enum PlayerTask { Idle, MoveToLane, PushSite, PlantBomb, RecoverBomb, HoldSite, DefendSite, Rotate, FallBack, Regroup, Retake, Defuse }
+    public enum PlayerTask { Idle, MoveToLane, PushSite, PlantBomb, RecoverBomb, HoldSite, DefendSite, Rotate, FallBack, Regroup, Retake, Defuse, Trade }
 
     // Test starting values, not balanced numbers. Round and bomb times follow the real
     // game; the radii are sized for this 100 x 100 map.
@@ -28,6 +28,8 @@ namespace FpsManager
         public float interactRadius = 2.5f;      // reach for planting, defusing, picking the bomb up
         public float clearRadius = 20f;          // a visible enemy this close to the site stops a plant
         public float holdRadius = 6f;            // spread of the holding positions around a site
+        public float lossMemory = 12f;           // how long a team mate falling here still counts
+        public float tradeWindow = 6f;           // how long a team mate falling is still worth trading for
     }
 
     // Map specific anchor points. Built by the map code, not hard coded here.
@@ -37,6 +39,9 @@ namespace FpsManager
         public string[] SiteNames;
         public Vector2[] Staging;      // per site: where defenders fall back to and retake from
         public Vector2[][] HoldRing;   // per site: spread positions around it
+        public Vector2[][] Approaches; // per site: the mouths attackers come through
+        public Vector2[][] PeekPost;   // per site, per approach: holds that mouth
+        public Vector2[][] CoverPost;  // per site, per approach: same angle, no line of sight
         public int SiteCount { get { return Sites.Length; } }
     }
 
@@ -46,6 +51,9 @@ namespace FpsManager
         public Vector2 watch;      // direction to face once standing still
         public PlayerTask task;
         public bool valid;
+        // Where to duck when reloading, blinded or hurt. Same angle, no line of sight.
+        public Vector2 cover;
+        public bool hasCover;
         // Break off and move even with an enemy in sight. Without this a defender can
         // never leave a site, because seeing anyone pins them in a firefight. A player
         // breaking off does not shoot while they move: firing on the move is not
@@ -64,8 +72,11 @@ namespace FpsManager
         readonly MapLayout layout;
         readonly int count;
         readonly PlayerObjective[] objectives;
-        readonly int[] slot;
-        readonly bool[] ready=new bool[10];              // stable index of a player within their team
+        readonly int[] slot;              // stable index of a player within their team
+        readonly bool[] ready=new bool[10];
+        readonly bool[] standing;         // alive as of the previous tick, for spotting losses
+        readonly Vector2[] lossPosition;
+        readonly float[] lossClock;       // round clock when this player fell, -1 while alive
         DeterministicRandom random;
 
         public RoundPhase Phase { get; private set; }
@@ -90,6 +101,9 @@ namespace FpsManager
             count = playerCount;
             objectives = new PlayerObjective[count];
             slot = new int[count];
+            standing = new bool[count];
+            lossPosition = new Vector2[count];
+            lossClock = new float[count];
             Phase = RoundPhase.Preparation;
             Outcome = RoundOutcome.None;
             PlantedSite = -1;
@@ -107,7 +121,11 @@ namespace FpsManager
             Outcome = RoundOutcome.None;
             Clock = 0f; PlantProgress = 0f; DefuseProgress = 0f; BombTimer = 0f;
             PlantedSite = -1; Carrier = -1; BombDropped = false; TargetSite = 0;
-            for (int i = 0; i < count; i++) { objectives[i] = new PlayerObjective(); ready[i]=false; }
+            for (int i = 0; i < count; i++)
+            {
+                objectives[i] = new PlayerObjective(); ready[i] = false;
+                standing[i] = true; lossClock[i] = -1f; lossPosition[i] = Vector2.zero;
+            }
         }
 
         // ctTeam is the team index currently playing counter terrorist.
@@ -134,6 +152,7 @@ namespace FpsManager
 
             for(int i=0;i<count;i++) if(team[i]!=ctTeam && combat.Alive(i))
                 ready[i] |= Vector2.Distance(positions[i],homeAnchor[i]) <= settings.interactRadius*2 || Clock >= 9+slot[i]*2;
+            TrackLosses(positions, combat);
             UpdateBombCarrier(positions, team, ctTeam, combat);
             if (Phase == RoundPhase.Setup && ReadyToExecute(positions, team, ctTeam, homeAnchor, combat))
                 Phase = RoundPhase.Execute;
@@ -170,6 +189,32 @@ namespace FpsManager
             if (ctAlive == 0) { End(RoundOutcome.CounterTerroristsEliminated); return; }
             if (tAlive == 0 && PlantedSite < 0) { End(RoundOutcome.TerroristsEliminated); return; }
             if (PlantedSite < 0 && Clock >= settings.roundSeconds) End(RoundOutcome.TimeExpired);
+        }
+
+        // Where and when each player fell. A death is something both teams observe, so
+        // using it in a decision does not leak hidden information.
+        void TrackLosses(Vector2[] positions, CombatSystem combat)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                if (!standing[i] || combat.Alive(i)) continue;
+                standing[i] = false;
+                lossPosition[i] = positions[i];
+                lossClock[i] = Clock;
+            }
+        }
+
+        public int RecentLossesAt(int site, int forTeam, int[] team)
+        {
+            int total = 0;
+            for (int i = 0; i < count; i++)
+            {
+                if (lossClock[i] < 0f || team[i] != forTeam) continue;
+                if (Clock - lossClock[i] > settings.lossMemory) continue;
+                if (Vector2.Distance(lossPosition[i], layout.Sites[site]) > settings.threatRadius) continue;
+                total++;
+            }
+            return total;
         }
 
         void UpdateBombCarrier(Vector2[] positions, int[] team, int ctTeam, CombatSystem combat)
@@ -257,6 +302,17 @@ namespace FpsManager
                 objective.watch = layout.Staging[site] - layout.Sites[site];
                 return objective;
             }
+            // Take the angle that just killed a team mate instead of walking to an empty
+            // holding spot. The defender who won that duel is still there and still aimed
+            // at it, and nobody trading means a site take dies one player at a time.
+            Vector2 tradeSpot;
+            if (PlantedSite < 0 && player != Carrier && TradeSpot(site, team[player], team, out tradeSpot))
+            {
+                objective.task = PlayerTask.Trade;
+                objective.destination = tradeSpot;
+                objective.watch = layout.Sites[site] - tradeSpot;
+                return objective;
+            }
             // Everyone else spreads around the site: covering the approaches before the
             // plant is the same job as holding them afterwards.
             objective.task = PlantedSite >= 0 ? PlayerTask.HoldSite : PlayerTask.PushSite;
@@ -299,13 +355,21 @@ namespace FpsManager
                 return objective;
             }
 
-            // The retake decision. A defender compares the enemies their team has actually
-            // seen on this site against the team mates they can count there. Composure buys
-            // patience: a calm player holds while a body down, a very calm one while two.
+            // The retake decision. A defender weighs what the team has actually seen on
+            // this site against the team mates they can count there. Composure buys one
+            // body of patience.
+            //
+            // Counting live contacts alone is not enough once attackers arrive one at a
+            // time: a defender is almost never looking at a crowd, so the odds never read
+            // as bad even while the site is being taken apart. Team mates dropping here is
+            // the other observed fact, and it is the one a real player acts on.
             int seen = KnownEnemiesNear(ctTeam, home, team, vision, combat);
             int friends = LivingFriendsNear(player, home, positions, team, ctTeam, combat);
+            int down = RecentLossesAt(home, team[player], team);
             int tolerance = composure[player] >= 90 ? 1 : 0;
-            if (seen > friends + tolerance)
+            // No guard is needed for the quiet case: a living defender always counts
+            // themselves, so with nothing seen and nobody lost the sum cannot win.
+            if (seen + down > friends + tolerance)
             {
                 // Break off only while there is ground to give up. Once back at the
                 // regroup point the player sets again and fights from there, otherwise
@@ -318,10 +382,45 @@ namespace FpsManager
                 objective.valid = true;
                 return objective;
             }
+            // Split the defenders of a site across its different ways in, so two people
+            // are not staring down the same corridor while a third is unwatched.
+            int mouth = ApproachShare(player, home, team, ctTeam, homeAnchor, combat);
             objective.task = PlayerTask.DefendSite;
-            objective.destination = homeAnchor[player];
-            objective.watch = WatchDirection(ctTeam, home, homeAnchor[player], team, vision, combat, true);
+            objective.destination = layout.PeekPost[home][mouth];
+            objective.cover = layout.CoverPost[home][mouth];
+            objective.hasCover = true;
+            objective.watch = layout.Approaches[home][mouth] - objective.destination;
             return objective;
+        }
+
+        // Which way in this player is responsible for: their rank among the defenders
+        // posted on the same site, wrapped over however many mouths that site has.
+        int ApproachShare(int player, int site, int[] team, int ctTeam, Vector2[] homeAnchor, CombatSystem combat)
+        {
+            int rank = 0;
+            for (int i = 0; i < player; i++)
+            {
+                if (team[i] != team[player] || !combat.Alive(i)) continue;
+                if (HomeSite(homeAnchor[i]) == site) rank++;
+            }
+            return rank % layout.Approaches[site].Length;
+        }
+
+        // The most recent place a team mate fell near this site, if it is recent enough to
+        // be worth pushing onto. Where a friend died is observed, not hidden information.
+        bool TradeSpot(int site, int forTeam, int[] team, out Vector2 spot)
+        {
+            spot = Vector2.zero;
+            float newest = -1f;
+            for (int i = 0; i < count; i++)
+            {
+                if (lossClock[i] < 0f || team[i] != forTeam) continue;
+                if (Clock - lossClock[i] > settings.tradeWindow) continue;
+                if (Vector2.Distance(lossPosition[i], layout.Sites[site]) > settings.threatRadius) continue;
+                if (lossClock[i] <= newest) continue;
+                newest = lossClock[i]; spot = lossPosition[i];
+            }
+            return newest >= 0f;
         }
 
         Vector2 HoldSpot(int site, int teamSlot)

@@ -99,7 +99,10 @@ namespace FpsManager
             if((visible||noise.known)&&utilityCooldown[i]<=0)
             {
                 Vector2 target=visible?contact:noise.position;
-                bool smoke=order.disengage||combat.Health(i)<45;
+                bool entering=order.task==PlayerTask.PushSite||order.task==PlayerTask.PlantBomb||order.task==PlayerTask.Trade;
+                // Attackers open a site: cut the angle they know is held, or blind it on
+                // the way in. Defenders still use smoke to cover a retreat.
+                bool smoke=entering?!visible:(order.disengage||combat.Health(i)<45);
                 string item=smoke?"smoke":"flash";
                 var equipment=new List<string>(inventory.equipment);
                 float distance=Vector2.Distance(position,target);
@@ -118,21 +121,23 @@ namespace FpsManager
                     }
                 }
             }
-            // Keep critical objectives, but let guards change angles and investigate nearby cues.
+            // Hold the angle. There used to be a random 2.5 unit wander here every second;
+            // it meant a guard was moving most of the time, and a moving player faces the
+            // way they are walking, so they were almost never aimed at the way in. Forty
+            // per cent of defender deaths came from outside their own field of view.
             if(!urgent&&(order.task==PlayerTask.DefendSite||order.task==PlayerTask.HoldSite))
             {
-                Vector2 candidate=order.destination;
                 if(noise.known&&Vector2.Distance(order.destination,noise.position)<22)
                 {
-                    candidate=Vector2.MoveTowards(order.destination,noise.position,3); order.watch=noise.position-position; Investigations++;
+                    var candidate=Vector2.MoveTowards(order.destination,noise.position,3);
+                    order.watch=noise.position-position; Investigations++;
+                    offset[i]=navigation.Clear(candidate,candidate)&&navigation.Clear(order.destination,candidate)?candidate-order.destination:Vector2.zero;
                 }
-                else
-                {
-                    float angle=random[i].Next01()*Mathf.PI*2;
-                    candidate+=new Vector2(Mathf.Cos(angle),Mathf.Sin(angle))*2.5f; Patrols++;
-                }
-                offset[i]=navigation.Clear(candidate,candidate)&&navigation.Clear(order.destination,candidate)?candidate-order.destination:Vector2.zero;
+                else offset[i]=Vector2.zero;
                 order.destination+=offset[i];
+                // Step off the angle while the gun is down or the eyes are gone, then come
+                // straight back. Same watch direction either way.
+                if(order.hasCover&&(combat.Reloading(i)||Blinded[i]||combat.Health(i)<40)) order.destination=order.cover;
             }
             return order;
         }

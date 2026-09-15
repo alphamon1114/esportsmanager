@@ -70,7 +70,81 @@ public static class RoundChecks
             throw new Exception("An unguarded bomb was not defused: " + defused.outcome);
         Debug.Log("ROUND_CASE_OK bomb-defused at " + defused.seconds.ToString("F1") + "s");
 
-        Debug.Log("ROUND_ALL_OK: termination, determinism, outcome variety, plant and fall back and rotate and retake all occur, observed information only, bomb explodes, bomb defused.");
+        // 8. Defenders have to be looking at the way in. This is measured rather than
+        //    asserted structurally, because it broke twice from unrelated changes: once
+        //    when the watch direction degenerated, and once when an idle patrol kept
+        //    guards walking so their facing followed their feet instead of their angle.
+        //    Both times the round still finished and nothing else complained.
+        var facing = DefenderFacingAtDeath(game);
+        if (facing.deaths < 40) throw new Exception("Not enough defender deaths to judge facing: " + facing.deaths);
+        if (facing.Share < 55f)
+            throw new Exception("Defenders are dying to enemies they never faced: only "
+                + facing.Share.ToString("F0") + "% of killers were inside the victim's field of view (want 55% or more)");
+        Debug.Log("ROUND_CASE_OK defender-facing " + facing.Share.ToString("F0") + "% of killers were in front of the defender");
+
+        // 9. Holding from cover and trading a dead team mate both have to happen.
+        if (!facing.ducked) throw new Exception("No defender ever stepped off their angle into cover");
+        if (!facing.traded) throw new Exception("No attacker ever traded a team mate");
+        if (!facing.threwEntering) throw new Exception("No attacker ever used utility while taking a site");
+        Debug.Log("ROUND_CASE_OK cover-trade-entry-utility");
+
+        Debug.Log("ROUND_ALL_OK: termination, determinism, outcome variety, plant and fall back and rotate and retake all occur, observed information only, bomb explodes, bomb defused, defenders face the approach, cover and trade and entry utility all occur.");
+    }
+
+    struct Facing
+    {
+        public int deaths, faced;
+        public bool ducked, traded, threwEntering;
+        public float Share { get { return deaths == 0 ? 0f : 100f * faced / deaths; } }
+    }
+
+    // Replays rounds and records, for every defender killed, the angle between the way
+    // they were looking and whoever shot them.
+    static Facing DefenderFacingAtDeath(Prototype game)
+    {
+        var result = new Facing();
+        var standing = new bool[10];
+        var facing = new Vector2[10];
+        var positions = new Vector2[10];
+        for (int seed = 1; seed <= 20; seed++)
+        {
+            game.SetRoundSeed(seed); game.PlaceTeams(); game.PrepareIglOrders(); game.BeginRound();
+            var director = game.Director;
+            int defenders = game.CounterTerroristTeam;
+            for (int i = 0; i < 10; i++) standing[i] = true;
+            int throwsSoFar = 0;
+            for (int tick = 0; tick < TickBudget && director.Phase != RoundPhase.Ended; tick++)
+            {
+                for (int i = 0; i < 10; i++) { positions[i] = game.MapPosition(i); facing[i] = game.MapFacing(i); }
+                game.SimulateMovement(.05f);
+                for (int i = 0; i < 10; i++)
+                {
+                    if (game.IsAlive(i))
+                    {
+                        var objective = director.Objective(i);
+                        if (objective.task == PlayerTask.Trade) result.traded = true;
+                        if (objective.task == PlayerTask.DefendSite && objective.hasCover
+                            && Vector2.Distance(objective.cover, objective.destination) > 1f
+                            && Vector2.Distance(game.MapPosition(i), objective.cover) < 2f) result.ducked = true;
+                        continue;
+                    }
+                    if (!standing[i]) continue;
+                    standing[i] = false;
+                    if (game.TeamIndexOf(i) != defenders) continue;
+                    int killer = game.Combat.KilledBy(i);
+                    if (killer < 0) continue;
+                    result.deaths++;
+                    float angle = Mathf.Abs(CombatSystem.SignedAngle(facing[i], positions[killer] - positions[i]));
+                    if (angle <= 50f) result.faced++;
+                }
+                if (game.Autonomy.Throws > throwsSoFar)
+                {
+                    throwsSoFar = game.Autonomy.Throws;
+                    if (director.Phase == RoundPhase.Execute) result.threwEntering = true;
+                }
+            }
+        }
+        return result;
     }
 
     struct Report
