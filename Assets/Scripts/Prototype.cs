@@ -21,6 +21,7 @@ namespace FpsManager
         readonly Vector2[] visionPositions = new Vector2[10];
         readonly Vector2[] visionFacing = new Vector2[10];
         bool fogOfWar = true;
+        bool showDebugInfo = false;
         CombatSystem combat;
         readonly CombatSettings combatSettings = new CombatSettings();
         readonly WeaponProfile weapon = new WeaponProfile();
@@ -506,7 +507,7 @@ namespace FpsManager
                 contacts+=(contacts.Length>0?"  ":"")+Data.players[i].handle+(contact.visible?"*":" "+contact.age.ToString("F1")+"s");
             }
             GUI.Label(new Rect(685,708,570,22),"SPIRIT CONTACTS / "+(contacts.Length>0?contacts:"none")+"   (* = seen now)");
-            if(roundMode)
+            if(roundMode && showDebugInfo)
             {
                 var objective=director.Objective(selected);
                 string bomb=director.PlantedSite>=0?"planted "+director.SiteName(director.PlantedSite)
@@ -528,7 +529,8 @@ namespace FpsManager
                 if(GUI.Button(new Rect(210,741,180,32),"Reset / next seed")) { roundSeed++; PlaceTeams(); }
             }
             if(GUI.Button(new Rect(400,741,180,32),fogOfWar?"Fog of war: ON":"Fog of war: OFF")) fogOfWar=!fogOfWar;
-            if(preparationError!=null) GUI.Label(new Rect(590,741,670,28),preparationError);
+            if(GUI.Button(new Rect(590,741,90,32),showDebugInfo?"Debug: ON":"Debug: OFF")) showDebugInfo=!showDebugInfo;
+            if(preparationError!=null) GUI.Label(new Rect(685,751,570,25),preparationError);
             GUI.Label(new Rect(20,776,1240,24),"Blue: CT | Orange: T | Click a name to change POV | Map hides Falcons until Spirit spots them; '?' marks a remembered position");
         }
         void OnDestroy()

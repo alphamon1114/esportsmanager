@@ -423,7 +423,7 @@ Unity 없이 로직만 빠르게 회귀 확인하고 싶다면, `UnityEngine` �
 - 이동 중 2D와 1인칭 위치가 일치하는지, Pause / Resume과 Reset이 작동하는지 확인합니다.
 - 상단 표시가 `SETUP` → `LIVE` → (설치 시) `BOMB DOWN at A/B` → `ROUND OVER`로 진행되는지 확인합니다.
 - **Fog of war ON에서 지도에 팔콘즈 마커가 보이지 않다가, 스피릿이 탐지하면 나타나는지** 확인합니다. 시야가 끊긴 뒤에는 마지막 목격 위치에 `?`가 붙습니다.
-- 오른쪽 `SPIRIT CONTACTS` 줄과 그 아래 `BOMB ... TARGET ... <선수>: <행동>` 줄을 봅니다. 선수를 바꿔 가며 행동이 `DefendSite` → `FallBack` → `Regroup` → `Retake` → `Defuse`로 바뀌는지 확인합니다.
+- 내부 행동·공격 목표는 기본 숨김입니다. 개발 확인 시 `Debug: ON`을 켜서 오른쪽 `BOMB ... TARGET ... <선수>: <행동>` 줄을 봅니다. 선수를 바꿔 가며 행동이 `DefendSite` → `FallBack` → `Regroup` → `Retake` → `Defuse`로 바뀌는지 확인합니다.
 - 상단 `ALIVE`가 줄어들고 지도에서 사망자가 `x 이름`으로 회색 처리되는지 확인합니다.
 - 상단 `SEED`를 확인합니다. `Reset / next seed`를 누르면 1 증가하며, 같은 시드로 돌리면 같은 라운드가 그대로 재생됩니다.
 - 이동 테스트 모드는 UI에서 빠졌습니다. `DeploymentChecks`와 `VisionChecks`가 그 모드를 사용하며, 코드에서는 `BeginDeployment`로 접근합니다.
@@ -505,3 +505,10 @@ Unity 없이 로직만 빠르게 회귀 확인하고 싶다면, `UnityEngine` �
 - `.meta`를 누락하면 씬과 스크립트 참조가 깨질 수 있습니다.
 - `Library`, `Temp`, `Logs`, `UserSettings` 같은 생성물과 머신별 캐시는 커밋 대상에서 제외합니다.
 - 다른 컴퓨터에서는 **커밋하고 push한 내용만** 받을 수 있습니다. 로컬 README 수정은 자동으로 GitHub에 업로드되지 않습니다.
+
+## 9. Codex 검토 메모 (2026-09-15)
+
+- 사용자 결정: 내부 행동과 공격 목표는 기본 화면에서 숨기고 Debug 토글에서만 표시. 전투·이동 로직 변경 없음.
+- 검토 시작 시 작업 트리는 깨끗했고 main과 로컬 origin/main은 ee9b6f7이었다. 미커밋이라는 이전 인수인계는 당시 상태와 다름. 원격 서버 재조회는 하지 않음.
+- 코드 검토상 후속 확인 필요: 해체자 교체 시 진행도 유지, 종료 후 UpdateSenses를 통한 교전 갱신. 이번 UI 변경에는 포함하지 않음.
+- 빠른 mcs 검사에 필요한 대역 클래스와 실행 스크립트는 저장소에서 찾지 못함. README 설명만으로 바로 실행되지 않아 임시 복사본의 Unity 검사 사용.
