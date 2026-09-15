@@ -1,0 +1,903 @@
+{
+  "teams": [
+    {
+      "id": "spirit",
+      "name": "Team Spirit",
+      "iglPlayerId": "spirit_magixx",
+      "sourceUrls": [
+        "https://www.hltv.org/team/7020/spirit",
+        "https://blast.tv/cs/team/80b609cb/spirit"
+      ]
+    },
+    {
+      "id": "falcons",
+      "name": "Team Falcons",
+      "iglPlayerId": "falcons_karrigan",
+      "sourceUrls": [
+        "https://www.hltv.org/team/11283/falcons"
+      ]
+    }
+  ],
+  "players": [
+    {
+      "id": "spirit_donk",
+      "teamId": "spirit",
+      "handle": "donk",
+      "weaponPosition": "rifler",
+      "riflerRole": "entry",
+      "stats": {
+        "aim": 98,
+        "utility": 78,
+        "movement": 96,
+        "charisma": 70,
+        "composure": 87
+      },
+      "weapons": [
+        {
+          "weapon": "glock_18",
+          "stars": 5
+        },
+        {
+          "weapon": "usp_s",
+          "stars": 4
+        },
+        {
+          "weapon": "dual_berettas",
+          "stars": 4
+        },
+        {
+          "weapon": "tec_9",
+          "stars": 5
+        },
+        {
+          "weapon": "five_seven",
+          "stars": 4
+        },
+        {
+          "weapon": "desert_eagle",
+          "stars": 5
+        },
+        {
+          "weapon": "mac_10",
+          "stars": 5
+        },
+        {
+          "weapon": "mp9",
+          "stars": 5
+        },
+        {
+          "weapon": "mp7",
+          "stars": 4
+        },
+        {
+          "weapon": "pp_bizon",
+          "stars": 3
+        },
+        {
+          "weapon": "ump_45",
+          "stars": 3
+        },
+        {
+          "weapon": "galil_ar",
+          "stars": 5
+        },
+        {
+          "weapon": "famas",
+          "stars": 4
+        },
+        {
+          "weapon": "ak_47",
+          "stars": 5
+        },
+        {
+          "weapon": "m4a1_s",
+          "stars": 5
+        },
+        {
+          "weapon": "sg_553",
+          "stars": 4
+        },
+        {
+          "weapon": "aug",
+          "stars": 4
+        },
+        {
+          "weapon": "awp",
+          "stars": 2
+        }
+      ]
+    },
+    {
+      "id": "spirit_sh1ro",
+      "teamId": "spirit",
+      "handle": "sh1ro",
+      "weaponPosition": "awper",
+      "riflerRole": null,
+      "stats": {
+        "aim": 94,
+        "utility": 85,
+        "movement": 85,
+        "charisma": 76,
+        "composure": 97
+      },
+      "weapons": [
+        {
+          "weapon": "glock_18",
+          "stars": 4
+        },
+        {
+          "weapon": "usp_s",
+          "stars": 5
+        },
+        {
+          "weapon": "dual_berettas",
+          "stars": 3
+        },
+        {
+          "weapon": "tec_9",
+          "stars": 4
+        },
+        {
+          "weapon": "five_seven",
+          "stars": 4
+        },
+        {
+          "weapon": "desert_eagle",
+          "stars": 4
+        },
+        {
+          "weapon": "mac_10",
+          "stars": 3
+        },
+        {
+          "weapon": "mp9",
+          "stars": 3
+        },
+        {
+          "weapon": "mp7",
+          "stars": 3
+        },
+        {
+          "weapon": "pp_bizon",
+          "stars": 2
+        },
+        {
+          "weapon": "ump_45",
+          "stars": 3
+        },
+        {
+          "weapon": "galil_ar",
+          "stars": 4
+        },
+        {
+          "weapon": "famas",
+          "stars": 4
+        },
+        {
+          "weapon": "ak_47",
+          "stars": 4
+        },
+        {
+          "weapon": "m4a1_s",
+          "stars": 4
+        },
+        {
+          "weapon": "sg_553",
+          "stars": 3
+        },
+        {
+          "weapon": "aug",
+          "stars": 4
+        },
+        {
+          "weapon": "awp",
+          "stars": 5
+        }
+      ]
+    },
+    {
+      "id": "spirit_magixx",
+      "teamId": "spirit",
+      "handle": "magixx",
+      "weaponPosition": "rifler",
+      "riflerRole": "anchor_lurker",
+      "stats": {
+        "aim": 79,
+        "utility": 91,
+        "movement": 79,
+        "charisma": 89,
+        "composure": 91
+      },
+      "weapons": [
+        {
+          "weapon": "glock_18",
+          "stars": 4
+        },
+        {
+          "weapon": "usp_s",
+          "stars": 4
+        },
+        {
+          "weapon": "dual_berettas",
+          "stars": 4
+        },
+        {
+          "weapon": "tec_9",
+          "stars": 4
+        },
+        {
+          "weapon": "five_seven",
+          "stars": 4
+        },
+        {
+          "weapon": "desert_eagle",
+          "stars": 4
+        },
+        {
+          "weapon": "mac_10",
+          "stars": 4
+        },
+        {
+          "weapon": "mp9",
+          "stars": 4
+        },
+        {
+          "weapon": "mp7",
+          "stars": 4
+        },
+        {
+          "weapon": "pp_bizon",
+          "stars": 3
+        },
+        {
+          "weapon": "ump_45",
+          "stars": 4
+        },
+        {
+          "weapon": "galil_ar",
+          "stars": 4
+        },
+        {
+          "weapon": "famas",
+          "stars": 4
+        },
+        {
+          "weapon": "ak_47",
+          "stars": 4
+        },
+        {
+          "weapon": "m4a1_s",
+          "stars": 5
+        },
+        {
+          "weapon": "sg_553",
+          "stars": 3
+        },
+        {
+          "weapon": "aug",
+          "stars": 4
+        },
+        {
+          "weapon": "awp",
+          "stars": 2
+        }
+      ]
+    },
+    {
+      "id": "spirit_tN1R",
+      "teamId": "spirit",
+      "handle": "tN1R",
+      "weaponPosition": "rifler",
+      "riflerRole": "entry",
+      "stats": {
+        "aim": 88,
+        "utility": 81,
+        "movement": 88,
+        "charisma": 65,
+        "composure": 83
+      },
+      "weapons": [
+        {
+          "weapon": "glock_18",
+          "stars": 4
+        },
+        {
+          "weapon": "usp_s",
+          "stars": 4
+        },
+        {
+          "weapon": "dual_berettas",
+          "stars": 3
+        },
+        {
+          "weapon": "tec_9",
+          "stars": 4
+        },
+        {
+          "weapon": "five_seven",
+          "stars": 4
+        },
+        {
+          "weapon": "desert_eagle",
+          "stars": 4
+        },
+        {
+          "weapon": "mac_10",
+          "stars": 4
+        },
+        {
+          "weapon": "mp9",
+          "stars": 4
+        },
+        {
+          "weapon": "mp7",
+          "stars": 4
+        },
+        {
+          "weapon": "pp_bizon",
+          "stars": 3
+        },
+        {
+          "weapon": "ump_45",
+          "stars": 3
+        },
+        {
+          "weapon": "galil_ar",
+          "stars": 4
+        },
+        {
+          "weapon": "famas",
+          "stars": 4
+        },
+        {
+          "weapon": "ak_47",
+          "stars": 5
+        },
+        {
+          "weapon": "m4a1_s",
+          "stars": 4
+        },
+        {
+          "weapon": "sg_553",
+          "stars": 3
+        },
+        {
+          "weapon": "aug",
+          "stars": 3
+        },
+        {
+          "weapon": "awp",
+          "stars": 2
+        }
+      ]
+    },
+    {
+      "id": "spirit_zont1x",
+      "teamId": "spirit",
+      "handle": "zont1x",
+      "weaponPosition": "rifler",
+      "riflerRole": "anchor_lurker",
+      "stats": {
+        "aim": 85,
+        "utility": 89,
+        "movement": 81,
+        "charisma": 69,
+        "composure": 93
+      },
+      "weapons": [
+        {
+          "weapon": "glock_18",
+          "stars": 4
+        },
+        {
+          "weapon": "usp_s",
+          "stars": 5
+        },
+        {
+          "weapon": "dual_berettas",
+          "stars": 4
+        },
+        {
+          "weapon": "tec_9",
+          "stars": 4
+        },
+        {
+          "weapon": "five_seven",
+          "stars": 4
+        },
+        {
+          "weapon": "desert_eagle",
+          "stars": 4
+        },
+        {
+          "weapon": "mac_10",
+          "stars": 4
+        },
+        {
+          "weapon": "mp9",
+          "stars": 4
+        },
+        {
+          "weapon": "mp7",
+          "stars": 4
+        },
+        {
+          "weapon": "pp_bizon",
+          "stars": 3
+        },
+        {
+          "weapon": "ump_45",
+          "stars": 4
+        },
+        {
+          "weapon": "galil_ar",
+          "stars": 4
+        },
+        {
+          "weapon": "famas",
+          "stars": 5
+        },
+        {
+          "weapon": "ak_47",
+          "stars": 4
+        },
+        {
+          "weapon": "m4a1_s",
+          "stars": 5
+        },
+        {
+          "weapon": "sg_553",
+          "stars": 4
+        },
+        {
+          "weapon": "aug",
+          "stars": 4
+        },
+        {
+          "weapon": "awp",
+          "stars": 2
+        }
+      ]
+    },
+    {
+      "id": "falcons_NiKo",
+      "teamId": "falcons",
+      "handle": "NiKo",
+      "weaponPosition": "rifler",
+      "riflerRole": "anchor_lurker",
+      "stats": {
+        "aim": 97,
+        "utility": 86,
+        "movement": 89,
+        "charisma": 84,
+        "composure": 90
+      },
+      "weapons": [
+        {
+          "weapon": "glock_18",
+          "stars": 5
+        },
+        {
+          "weapon": "usp_s",
+          "stars": 5
+        },
+        {
+          "weapon": "dual_berettas",
+          "stars": 4
+        },
+        {
+          "weapon": "tec_9",
+          "stars": 5
+        },
+        {
+          "weapon": "five_seven",
+          "stars": 5
+        },
+        {
+          "weapon": "desert_eagle",
+          "stars": 5
+        },
+        {
+          "weapon": "mac_10",
+          "stars": 4
+        },
+        {
+          "weapon": "mp9",
+          "stars": 4
+        },
+        {
+          "weapon": "mp7",
+          "stars": 4
+        },
+        {
+          "weapon": "pp_bizon",
+          "stars": 3
+        },
+        {
+          "weapon": "ump_45",
+          "stars": 4
+        },
+        {
+          "weapon": "galil_ar",
+          "stars": 5
+        },
+        {
+          "weapon": "famas",
+          "stars": 4
+        },
+        {
+          "weapon": "ak_47",
+          "stars": 5
+        },
+        {
+          "weapon": "m4a1_s",
+          "stars": 5
+        },
+        {
+          "weapon": "sg_553",
+          "stars": 4
+        },
+        {
+          "weapon": "aug",
+          "stars": 4
+        },
+        {
+          "weapon": "awp",
+          "stars": 3
+        }
+      ]
+    },
+    {
+      "id": "falcons_m0NESY",
+      "teamId": "falcons",
+      "handle": "m0NESY",
+      "weaponPosition": "awper",
+      "riflerRole": null,
+      "stats": {
+        "aim": 97,
+        "utility": 81,
+        "movement": 96,
+        "charisma": 72,
+        "composure": 92
+      },
+      "weapons": [
+        {
+          "weapon": "glock_18",
+          "stars": 5
+        },
+        {
+          "weapon": "usp_s",
+          "stars": 5
+        },
+        {
+          "weapon": "dual_berettas",
+          "stars": 4
+        },
+        {
+          "weapon": "tec_9",
+          "stars": 4
+        },
+        {
+          "weapon": "five_seven",
+          "stars": 4
+        },
+        {
+          "weapon": "desert_eagle",
+          "stars": 5
+        },
+        {
+          "weapon": "mac_10",
+          "stars": 4
+        },
+        {
+          "weapon": "mp9",
+          "stars": 4
+        },
+        {
+          "weapon": "mp7",
+          "stars": 4
+        },
+        {
+          "weapon": "pp_bizon",
+          "stars": 2
+        },
+        {
+          "weapon": "ump_45",
+          "stars": 3
+        },
+        {
+          "weapon": "galil_ar",
+          "stars": 4
+        },
+        {
+          "weapon": "famas",
+          "stars": 4
+        },
+        {
+          "weapon": "ak_47",
+          "stars": 5
+        },
+        {
+          "weapon": "m4a1_s",
+          "stars": 4
+        },
+        {
+          "weapon": "sg_553",
+          "stars": 4
+        },
+        {
+          "weapon": "aug",
+          "stars": 4
+        },
+        {
+          "weapon": "awp",
+          "stars": 5
+        }
+      ]
+    },
+    {
+      "id": "falcons_TeSeS",
+      "teamId": "falcons",
+      "handle": "TeSeS",
+      "weaponPosition": "rifler",
+      "riflerRole": "anchor_lurker",
+      "stats": {
+        "aim": 84,
+        "utility": 91,
+        "movement": 85,
+        "charisma": 74,
+        "composure": 89
+      },
+      "weapons": [
+        {
+          "weapon": "glock_18",
+          "stars": 4
+        },
+        {
+          "weapon": "usp_s",
+          "stars": 4
+        },
+        {
+          "weapon": "dual_berettas",
+          "stars": 4
+        },
+        {
+          "weapon": "tec_9",
+          "stars": 4
+        },
+        {
+          "weapon": "five_seven",
+          "stars": 5
+        },
+        {
+          "weapon": "desert_eagle",
+          "stars": 4
+        },
+        {
+          "weapon": "mac_10",
+          "stars": 5
+        },
+        {
+          "weapon": "mp9",
+          "stars": 5
+        },
+        {
+          "weapon": "mp7",
+          "stars": 4
+        },
+        {
+          "weapon": "pp_bizon",
+          "stars": 3
+        },
+        {
+          "weapon": "ump_45",
+          "stars": 4
+        },
+        {
+          "weapon": "galil_ar",
+          "stars": 4
+        },
+        {
+          "weapon": "famas",
+          "stars": 4
+        },
+        {
+          "weapon": "ak_47",
+          "stars": 4
+        },
+        {
+          "weapon": "m4a1_s",
+          "stars": 5
+        },
+        {
+          "weapon": "sg_553",
+          "stars": 4
+        },
+        {
+          "weapon": "aug",
+          "stars": 4
+        },
+        {
+          "weapon": "awp",
+          "stars": 2
+        }
+      ]
+    },
+    {
+      "id": "falcons_kyousuke",
+      "teamId": "falcons",
+      "handle": "kyousuke",
+      "weaponPosition": "rifler",
+      "riflerRole": "entry",
+      "stats": {
+        "aim": 94,
+        "utility": 77,
+        "movement": 94,
+        "charisma": 61,
+        "composure": 81
+      },
+      "weapons": [
+        {
+          "weapon": "glock_18",
+          "stars": 4
+        },
+        {
+          "weapon": "usp_s",
+          "stars": 4
+        },
+        {
+          "weapon": "dual_berettas",
+          "stars": 4
+        },
+        {
+          "weapon": "tec_9",
+          "stars": 5
+        },
+        {
+          "weapon": "five_seven",
+          "stars": 4
+        },
+        {
+          "weapon": "desert_eagle",
+          "stars": 5
+        },
+        {
+          "weapon": "mac_10",
+          "stars": 5
+        },
+        {
+          "weapon": "mp9",
+          "stars": 5
+        },
+        {
+          "weapon": "mp7",
+          "stars": 4
+        },
+        {
+          "weapon": "pp_bizon",
+          "stars": 3
+        },
+        {
+          "weapon": "ump_45",
+          "stars": 3
+        },
+        {
+          "weapon": "galil_ar",
+          "stars": 5
+        },
+        {
+          "weapon": "famas",
+          "stars": 4
+        },
+        {
+          "weapon": "ak_47",
+          "stars": 5
+        },
+        {
+          "weapon": "m4a1_s",
+          "stars": 5
+        },
+        {
+          "weapon": "sg_553",
+          "stars": 3
+        },
+        {
+          "weapon": "aug",
+          "stars": 3
+        },
+        {
+          "weapon": "awp",
+          "stars": 2
+        }
+      ]
+    },
+    {
+      "id": "falcons_karrigan",
+      "teamId": "falcons",
+      "handle": "karrigan",
+      "weaponPosition": "rifler",
+      "riflerRole": "entry",
+      "stats": {
+        "aim": 72,
+        "utility": 94,
+        "movement": 78,
+        "charisma": 98,
+        "composure": 90
+      },
+      "weapons": [
+        {
+          "weapon": "glock_18",
+          "stars": 4
+        },
+        {
+          "weapon": "usp_s",
+          "stars": 4
+        },
+        {
+          "weapon": "dual_berettas",
+          "stars": 4
+        },
+        {
+          "weapon": "tec_9",
+          "stars": 4
+        },
+        {
+          "weapon": "five_seven",
+          "stars": 4
+        },
+        {
+          "weapon": "desert_eagle",
+          "stars": 3
+        },
+        {
+          "weapon": "mac_10",
+          "stars": 4
+        },
+        {
+          "weapon": "mp9",
+          "stars": 4
+        },
+        {
+          "weapon": "mp7",
+          "stars": 4
+        },
+        {
+          "weapon": "pp_bizon",
+          "stars": 3
+        },
+        {
+          "weapon": "ump_45",
+          "stars": 4
+        },
+        {
+          "weapon": "galil_ar",
+          "stars": 4
+        },
+        {
+          "weapon": "famas",
+          "stars": 4
+        },
+        {
+          "weapon": "ak_47",
+          "stars": 4
+        },
+        {
+          "weapon": "m4a1_s",
+          "stars": 4
+        },
+        {
+          "weapon": "sg_553",
+          "stars": 3
+        },
+        {
+          "weapon": "aug",
+          "stars": 3
+        },
+        {
+          "weapon": "awp",
+          "stars": 2
+        }
+      ]
+    }
+  ]
+}
