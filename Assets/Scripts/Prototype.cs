@@ -27,8 +27,18 @@ namespace FpsManager
         readonly bool[] alive = new bool[10];
         readonly bool[] arrived = new bool[10];
         readonly int[] aimStats = new int[10];
+        readonly int[] composureStats = new int[10];
         Material deadMaterial;
         int roundSeed = 12345;
+        RoundDirector director;
+        readonly RoundSettings roundSettings = new RoundSettings();
+        MapLayout layout;
+        bool roundMode;
+        readonly Vector2[] homeAnchor = new Vector2[10];
+        readonly Vector2[] destinations = new Vector2[10];
+        readonly bool[] routeValid = new bool[10];
+        readonly float[] repathDelay = new float[10];
+        readonly bool[] moving = new bool[10];
         readonly int[] assignments = { 0, 1, 2, 0, 2, 0, 1, 2, 0, 2 };
         readonly List<List<Vector2>> routes = new List<List<Vector2>>();
         readonly int[] routeSteps = new int[10];
@@ -56,7 +66,14 @@ namespace FpsManager
             for (int i = 0; i < Data.players.Length; i++) teamIndex[i] = Data.players[i].teamId == Data.teams[0].id ? 0 : 1;
             vision = new VisionSystem(navigation, visionSettings, Data.players.Length);
             combat = new CombatSystem(combatSettings, weapon, Data.players.Length);
-            for (int i = 0; i < Data.players.Length; i++) aimStats[i] = Data.players[i].stats.aim;
+            for (int i = 0; i < Data.players.Length; i++)
+            {
+                aimStats[i] = Data.players[i].stats.aim;
+                composureStats[i] = Data.players[i].stats.composure;
+                routes.Add(new List<Vector2>());
+            }
+            layout = BuildLayout();
+            director = new RoundDirector(roundSettings, layout, Data.players.Length);
             ctMaterial=Material(new Color(.18f,.65f,1)); tMaterial=Material(new Color(1,.62f,.18f));
             deadMaterial=Material(new Color(.30f,.30f,.32f));
             mapTexture = new RenderTexture(900,900,16);
@@ -131,12 +148,112 @@ namespace FpsManager
             foreach(var p in new[]{new Vector2(13,16),new Vector2(25,25),new Vector2(79,29),new Vector2(89,37),new Vector2(24,44)})
                 Box("Cover",World(p,1.25f),new Vector3(3,2.5f,3),cover);
         }
+        // Anchors the round logic needs, derived from the map rather than hard coded, so
+        // that changing BuildMap keeps the tactics pointing at real ground.
+        MapLayout BuildLayout()
+        {
+            var sites = new[] { new Vector2(83,33), new Vector2(18,20) };   // A, B plant areas
+            var result = new MapLayout();
+            result.Sites = sites;
+            result.SiteNames = new[] { "A", "B" };
+            result.Staging = new Vector2[sites.Length];
+            result.HoldRing = new Vector2[sites.Length][];
+            var spawn = new Vector2(0,0);
+            foreach(var p in ctPositions) spawn += p;
+            spawn /= ctPositions.Length;
+            for(int i=0;i<sites.Length;i++)
+            {
+                result.Staging[i] = BackAlongApproach(spawn, sites[i], 16f);
+                result.HoldRing[i] = Ring(sites[i], roundSettings.holdRadius, 5);
+            }
+            return result;
+        }
+        // Walks back along the defenders' own approach to find where they regroup. Using
+        // the route rather than a fixed offset keeps the spot reachable and behind them.
+        Vector2 BackAlongApproach(Vector2 from, Vector2 site, float distance)
+        {
+            List<Vector2> route;
+            try { route = navigation.Route(from, site, new List<Vector2>()); }
+            catch(InvalidOperationException) { return site; }
+            float walked=0;
+            for(int i=route.Count-1;i>0;i--)
+            {
+                float segment=Vector2.Distance(route[i],route[i-1]);
+                if(walked+segment>=distance)
+                {
+                    float share=(distance-walked)/Mathf.Max(segment,.001f);
+                    Vector2 point=route[i]+(route[i-1]-route[i])*share;
+                    return navigation.Clear(point,point)?point:route[i-1];
+                }
+                walked+=segment;
+            }
+            return route.Count>0?route[0]:site;
+        }
+        Vector2[] Ring(Vector2 centre, float radius, int slots)
+        {
+            var result=new Vector2[slots];
+            for(int i=0;i<slots;i++)
+            {
+                float angle=360f/slots*i*Mathf.Deg2Rad;
+                var direction=new Vector2(Mathf.Cos(angle),Mathf.Sin(angle));
+                result[i]=centre;
+                for(float r=radius;r>=1f;r-=.5f)
+                {
+                    var candidate=centre+direction*r;
+                    if(!navigation.Clear(candidate,candidate)||!navigation.Clear(centre,candidate)) continue;
+                    result[i]=candidate; break;
+                }
+            }
+            return result;
+        }
+        void ClearRoutes()
+        {
+            for(int i=0;i<routes.Count;i++) routes[i]=new List<Vector2>();
+            Array.Clear(routeSteps,0,routeSteps.Length);
+            for(int i=0;i<routeValid.Length;i++) { routeValid[i]=false; repathDelay[i]=0f; }
+        }
+        // Re-paths only when the goal actually moved, and at most twice a second per
+        // player: Route is a full grid search and objectives change rarely.
+        void MoveTo(int player, Vector2 destination)
+        {
+            if(routeValid[player]&&(destination-destinations[player]).sqrMagnitude<1f) return;
+            if(repathDelay[player]>0f) return;
+            destinations[player]=destination; repathDelay[player]=.5f;
+            try
+            {
+                routes[player]=navigation.Route(MapPosition(player),destination,new List<Vector2>());
+                routeSteps[player]=0; routeValid[player]=true;
+            }
+            catch(InvalidOperationException) { routeValid[player]=false; }
+        }
+        void StepRoute(int player, float tick)
+        {
+            float remaining=tick*5f;
+            while(remaining>0&&routeSteps[player]<routes[player].Count)
+            {
+                Vector3 target=World(routes[player][routeSteps[player]]),position=actors[player].transform.position;
+                Vector3 direction=target-position;
+                float distance=direction.magnitude;
+                if(distance>.001f) actors[player].transform.rotation=Quaternion.RotateTowards(actors[player].transform.rotation,Quaternion.LookRotation(direction),360*tick);
+                float step=Mathf.Min(remaining,distance);
+                actors[player].transform.position=Vector3.MoveTowards(position,target,step);
+                remaining-=step;
+                if(distance<=step+.001f) routeSteps[player]++; else break;
+            }
+        }
+        void FaceWatch(int player, Vector2 watch, float tick)
+        {
+            if(watch.sqrMagnitude<.0001f) return;
+            var target=Quaternion.LookRotation(new Vector3(watch.x,0,-watch.y));
+            actors[player].transform.rotation=Quaternion.RotateTowards(actors[player].transform.rotation,target,180*tick);
+        }
         public void PlaceTeams()
         {
-            deploymentStarted=false; paused=false; elapsed=0; DeploymentComplete=false;
-            routes.Clear(); Array.Clear(routeSteps,0,routeSteps.Length); preparationError=null;
+            deploymentStarted=false; paused=false; elapsed=0; DeploymentComplete=false; roundMode=false;
+            ClearRoutes(); preparationError=null;
             if(vision!=null) vision.Reset();
             if(combat!=null) combat.Reset(roundSeed);
+            if(director!=null) director.Reset();
             for(int i=0;i<alive.Length;i++) { alive[i]=true; arrived[i]=false; }
             int ct=0,t=0;
             for(int i=0;i<actors.Count;i++)
@@ -166,18 +283,38 @@ namespace FpsManager
             if(!IsAlliedPlayer(player)) throw new InvalidOperationException("Opponent deployment is AI controlled.");
             assignments[player]=zone;
         }
+        // Movement test: everyone walks to their assigned zone once and stops. Kept
+        // separate from a real round so the deployment, vision and combat checks keep
+        // exercising the same simple behaviour they were written against.
         public void BeginDeployment()
         {
             if(deploymentStarted) return;
-            routes.Clear(); var reserved=new List<Vector2>();
+            var reserved=new List<Vector2>();
             for(int i=0;i<actors.Count;i++)
             {
-                bool isCt=Data.players[i].teamId==Data.teams[ctTeam].id;
-                Vector3 p=actors[i].transform.position;
-                routes.Add(navigation.Route(new Vector2(p.x,100-p.z),(isCt?ctZones:tZones)[assignments[i]],reserved));
+                homeAnchor[i]=(teamIndex[i]==ctTeam?ctZones:tZones)[assignments[i]];
+                routes[i]=navigation.Route(MapPosition(i),homeAnchor[i],reserved);
+                routeValid[i]=true; destinations[i]=homeAnchor[i];
             }
             Array.Clear(routeSteps,0,routeSteps.Length);
-            deploymentStarted=true; paused=false; DeploymentComplete=false; preparationError=null;
+            deploymentStarted=true; roundMode=false; paused=false; DeploymentComplete=false; preparationError=null;
+        }
+        // A real round: the assigned zone becomes the opening position, and from there the
+        // round director decides where everyone goes.
+        public void BeginRound()
+        {
+            if(deploymentStarted) return;
+            for(int i=0;i<actors.Count;i++)
+            {
+                homeAnchor[i]=(teamIndex[i]==ctTeam?ctZones:tZones)[assignments[i]];
+                destinations[i]=homeAnchor[i];
+            }
+            ClearRoutes();
+            director.Begin(roundSeed,teamIndex,ctTeam);
+            deploymentStarted=true; roundMode=true; paused=false; DeploymentComplete=false; preparationError=null;
+            // Everyone may shoot from the first tick; the stand-still-to-engage rule is a
+            // movement-test simplification, not a round rule.
+            for(int i=0;i<arrived.Length;i++) arrived[i]=true;
         }
         void Update() { if(Data!=null&&error==null) SimulateMovement(Time.deltaTime); }
         void LateUpdate() { if(eyeCamera!=null&&actors.Count>selected) Select(selected); }
@@ -197,7 +334,11 @@ namespace FpsManager
         public int RoundSeed { get { return roundSeed; } }
         public void SetRoundSeed(int seed) { roundSeed=seed; }
         public int LivingCount(int team) { return combat.LivingCount(teamIndex,team); }
-        public bool RoundDecided { get { return combat!=null && (LivingCount(0)==0 || LivingCount(1)==0); } }
+        public RoundDirector Director { get { return director; } }
+        public MapLayout Layout { get { return layout; } }
+        public bool RoundMode { get { return roundMode; } }
+        public int CounterTerroristTeam { get { return ctTeam; } }
+        public Vector2 HomeAnchor(int player) { return homeAnchor[player]; }
         // Detection and engagement run whenever the clock runs, including while players
         // stand still, so team knowledge stays in step with the shown positions.
         // Order matters: move, then look, then shoot at what was just seen.
@@ -217,8 +358,10 @@ namespace FpsManager
             for(int i=0;i<actors.Count;i++)
             {
                 if(!alive[i]) { actors[i].GetComponent<Renderer>().sharedMaterial=deadMaterial; continue; }
-                if(!combat.Engaging(i)) continue;
-                // Combat steers the shooter, so push its facing back onto the actor.
+                if(!combat.Engaging(i)||moving[i]) continue;
+                // Combat steers a shooter who is standing still. A player on the move keeps
+                // the facing their movement gave them, so they can fire at what is ahead of
+                // them but not at something behind: no turning to shoot while running.
                 var f=visionFacing[i];
                 actors[i].transform.rotation=Quaternion.LookRotation(new Vector3(f.x,0,-f.y));
             }
@@ -227,6 +370,7 @@ namespace FpsManager
         {
             float tick=Mathf.Min(delta,.1f);
             if(paused) return;
+            if(roundMode) { SimulateRound(tick); return; }
             if(!deploymentStarted||DeploymentComplete) { UpdateSenses(tick); return; }
             bool complete=true;
             for(int i=0;i<actors.Count;i++)
@@ -234,22 +378,34 @@ namespace FpsManager
                 // A dead player stops where they fell and counts as finished.
                 if(!combat.Alive(i)) { routeSteps[i]=routes[i].Count; arrived[i]=true; continue; }
                 if(routeSteps[i]>=routes[i].Count) { arrived[i]=true; continue; }
-                float remaining=tick*5f;
-                while(remaining>0&&routeSteps[i]<routes[i].Count)
-                {
-                    Vector3 target=World(routes[i][routeSteps[i]]),position=actors[i].transform.position;
-                    Vector3 direction=target-position;
-                    float distance=direction.magnitude;
-                    if(distance>.001f) actors[i].transform.rotation=Quaternion.RotateTowards(actors[i].transform.rotation,Quaternion.LookRotation(direction),360*tick);
-                    float step=Mathf.Min(remaining,distance);
-                    actors[i].transform.position=Vector3.MoveTowards(position,target,step);
-                    remaining-=step;
-                    if(distance<=step+.001f) routeSteps[i]++; else break;
-                }
+                StepRoute(i,tick);
                 if(routeSteps[i]<routes[i].Count) complete=false; else arrived[i]=true;
             }
             elapsed+=tick; DeploymentComplete=complete;
             UpdateSenses(tick);
+        }
+        // Order per tick: act on the objectives decided last tick, then look, shoot, and
+        // finally decide the next objectives from what was just observed.
+        void SimulateRound(float tick)
+        {
+            if(director.Phase==RoundPhase.Ended) { UpdateSenses(tick); return; }
+            for(int i=0;i<actors.Count;i++)
+            {
+                repathDelay[i]=Mathf.Max(0f,repathDelay[i]-tick);
+                if(!combat.Alive(i)) { routeValid[i]=false; continue; }
+                moving[i]=false;
+                var objective=director.Objective(i);
+                // A player with something to shoot at stops and fights. Moving accuracy is
+                // not modelled yet, so standing still is the honest simplification.
+                // A player breaking off ignores that and keeps moving.
+                if(!objective.disengage&&combat.Engaging(i)) continue;
+                if(objective.valid) MoveTo(i,objective.destination);
+                if(routeValid[i]&&routeSteps[i]<routes[i].Count) { StepRoute(i,tick); moving[i]=true; }
+                else if(objective.valid) FaceWatch(i,objective.watch,tick);
+            }
+            elapsed+=tick;
+            UpdateSenses(tick);
+            director.Tick(tick,visionPositions,teamIndex,ctTeam,homeAnchor,composureStats,vision,combat);
         }
         public void ValidateMovementGeometry()
         {
@@ -260,15 +416,44 @@ namespace FpsManager
             }
         }
         public void SwapPreviewSides() { if(!deploymentStarted) { ctTeam=1-ctTeam; PlaceTeams(); } }
+        string RoundLine()
+        {
+            if(!deploymentStarted) return "PREPARATION / Assign zones before starting";
+            if(!roundMode) return "MOVEMENT TEST / "+elapsed.ToString("F1")+"s";
+            switch(director.Phase)
+            {
+                case RoundPhase.Setup: return "SETUP / "+director.Clock.ToString("F0")+"s";
+                case RoundPhase.Execute:
+                    string plant=director.PlantProgress>0f?"   PLANTING "+director.PlantProgress.ToString("F1")+"s":"";
+                    return "LIVE / "+director.Clock.ToString("F0")+"s"+plant;
+                case RoundPhase.PostPlant:
+                    string defuse=director.DefuseProgress>0f?"   DEFUSING "+director.DefuseProgress.ToString("F1")+"s":"";
+                    return "BOMB DOWN at "+director.SiteName(director.PlantedSite)+" / "+director.BombTimer.ToString("F1")+"s"+defuse;
+                case RoundPhase.Ended: return "ROUND OVER / "+OutcomeText(director.Outcome);
+            }
+            return "ROUND";
+        }
+        static string OutcomeText(RoundOutcome outcome)
+        {
+            switch(outcome)
+            {
+                case RoundOutcome.BombExploded: return "bomb exploded, attackers win";
+                case RoundOutcome.BombDefused: return "bomb defused, defenders win";
+                case RoundOutcome.TerroristsEliminated: return "attackers eliminated, defenders win";
+                case RoundOutcome.CounterTerroristsEliminated: return "defenders eliminated, attackers win";
+                case RoundOutcome.TimeExpired: return "time expired, defenders win";
+            }
+            return "undecided";
+        }
         void OnGUI()
         {
             if(error!=null) { GUI.Label(new Rect(20,20,1000,100),error); return; }
             if(Data==null) return;
             GUI.matrix=Matrix4x4.Scale(new Vector3(Screen.width/1280f,Screen.height/800f,1));
             GUI.Label(new Rect(20,12,1000,25),"FPS MANAGER / YOUR TEAM: SPIRIT / OPPONENT: FALCONS");
-            GUI.Label(new Rect(20,39,1240,25),(deploymentStarted?"ROUND TEST / "+elapsed.ToString("F1")+"s":"PREPARATION / Assign zones before starting")
+            GUI.Label(new Rect(20,39,1240,25),RoundLine()
                 +"   ALIVE "+Data.teams[AlliedTeamIndex].name+" "+LivingCount(AlliedTeamIndex)+" : "+LivingCount(1-AlliedTeamIndex)+" "+Data.teams[1-AlliedTeamIndex].name
-                +"   SEED "+roundSeed+" | Rifle only, no economy or round scoring");
+                +"   SEED "+roundSeed+" | Rifle only, no economy or scoring across rounds");
             Rect map=new Rect(20,80,650,650); GUI.DrawTexture(map,mapTexture,ScaleMode.StretchToFill);
             int viewerTeam=AlliedTeamIndex;
             for(int i=0;i<actors.Count;i++)
@@ -321,10 +506,19 @@ namespace FpsManager
                 contacts+=(contacts.Length>0?"  ":"")+Data.players[i].handle+(contact.visible?"*":" "+contact.age.ToString("F1")+"s");
             }
             GUI.Label(new Rect(685,708,570,22),"SPIRIT CONTACTS / "+(contacts.Length>0?contacts:"none")+"   (* = seen now)");
+            if(roundMode)
+            {
+                var objective=director.Objective(selected);
+                string bomb=director.PlantedSite>=0?"planted "+director.SiteName(director.PlantedSite)
+                    :director.Carrier>=0?"carried by "+Data.players[director.Carrier].handle
+                    :director.BombDropped?"dropped":"-";
+                GUI.Label(new Rect(685,730,570,22),"BOMB "+bomb+"   TARGET "+director.SiteName(director.TargetSite)
+                    +"   "+Data.players[selected].handle+": "+(combat.Alive(selected)?objective.task.ToString():"down"));
+            }
             if(!deploymentStarted)
             {
-                if(GUI.Button(new Rect(20,741,180,32),"Start movement test"))
-                    try { BeginDeployment(); } catch(Exception ex) { preparationError=ex.Message; Debug.LogException(ex); }
+                if(GUI.Button(new Rect(20,741,180,32),"Start round"))
+                    try { BeginRound(); } catch(Exception ex) { preparationError=ex.Message; Debug.LogException(ex); }
                 if(GUI.Button(new Rect(210,741,180,32),"Swap starting sides")) SwapPreviewSides();
             }
             else

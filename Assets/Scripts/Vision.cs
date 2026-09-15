@@ -15,6 +15,13 @@ namespace FpsManager
         public float recognitionPerUnit = .004f;  // extra exposure per unit of distance
         public float exposureDecay = .5f;         // share of delta removed once exposure breaks
         public float memoryDuration = 6f;         // how long a lost contact stays in team knowledge
+        // Hearing. A moving enemy inside this radius is picked up through walls and from
+        // behind, because sound is what gives a defender any warning at all: seeing an
+        // attacker and being shot by them happen within the same second. A heard contact
+        // is known but never visible, so it informs decisions and cannot be shot at.
+        // Set to zero to switch hearing off.
+        public float hearingRange = 18f;
+        public float hearingSpeed = .5f;          // units per second before a player is audible
     }
 
     // What one team knows about one player. Teams share contacts with each other,
@@ -22,7 +29,8 @@ namespace FpsManager
     public struct ContactInfo
     {
         public bool visible;              // a team mate has line of sight right now
-        public bool known;                // visible, or remembered within memoryDuration
+        public bool heard;                // picked up by sound this tick, without being seen
+        public bool known;                // visible, heard, or remembered within memoryDuration
         public Vector2 lastKnownPosition; // map coordinates of the last confirmed sighting
         public float age;                 // seconds since the last sighting; 0 while visible
         public int spotter;               // player index that holds the sighting, -1 if none
@@ -39,7 +47,9 @@ namespace FpsManager
         readonly bool[] direct;             // observer * count + target
         readonly ContactInfo[] knowledge;   // viewerTeam * count + target
         readonly int[] lastTeam;
+        readonly Vector2[] previous;
         readonly float cosHalfAngle;
+        bool hasPrevious;
 
         public VisionSystem(DeploymentNavigation navigation, VisionSettings settings, int playerCount)
         {
@@ -52,6 +62,7 @@ namespace FpsManager
             direct = new bool[count * count];
             knowledge = new ContactInfo[2 * count];
             lastTeam = new int[count];
+            previous = new Vector2[count];
             cosHalfAngle = Mathf.Cos(this.settings.fieldOfViewDegrees * .5f * Mathf.Deg2Rad);
             Reset();
         }
@@ -63,6 +74,8 @@ namespace FpsManager
             Array.Clear(exposure, 0, exposure.Length);
             Array.Clear(direct, 0, direct.Length);
             Array.Clear(lastTeam, 0, lastTeam.Length);
+            Array.Clear(previous, 0, previous.Length);
+            hasPrevious = false;
             for (int i = 0; i < knowledge.Length; i++)
             {
                 knowledge[i] = new ContactInfo();
@@ -95,6 +108,21 @@ namespace FpsManager
         public float RecognitionTime(float distance)
         {
             return settings.recognitionBase + settings.recognitionPerUnit * distance;
+        }
+
+        // Sound ignores the cone and the geometry, and only carries while the target is
+        // actually moving. Returns the team mate that hears them, or -1.
+        int Listener(int viewerTeam, int target, float delta, Vector2[] positions, int[] team, bool[] alive)
+        {
+            if (settings.hearingRange <= 0f || !hasPrevious || delta <= 0f) return -1;
+            if (Vector2.Distance(positions[target], previous[target]) / delta < settings.hearingSpeed) return -1;
+            for (int observer = 0; observer < count; observer++)
+            {
+                if (team[observer] != viewerTeam) continue;
+                if (alive != null && !alive[observer]) continue;
+                if (Vector2.Distance(positions[observer], positions[target]) <= settings.hearingRange) return observer;
+            }
+            return -1;
         }
 
         // Geometry test only: range, cone and obstruction. No exposure time.
@@ -170,17 +198,20 @@ namespace FpsManager
                     int spotter = -1;
                     for (int observer = 0; observer < count; observer++)
                         if (team[observer] == viewerTeam && direct[observer * count + target]) { spotter = observer; break; }
-                    if (spotter >= 0)
+                    int listener = spotter >= 0 ? -1 : Listener(viewerTeam, target, delta, positions, team, alive);
+                    if (spotter >= 0 || listener >= 0)
                     {
-                        knowledge[k].visible = true;
+                        knowledge[k].visible = spotter >= 0;
+                        knowledge[k].heard = spotter < 0;
                         knowledge[k].known = true;
                         knowledge[k].lastKnownPosition = positions[target];
                         knowledge[k].age = 0f;
-                        knowledge[k].spotter = spotter;
+                        knowledge[k].spotter = spotter >= 0 ? spotter : listener;
                     }
                     else
                     {
                         knowledge[k].visible = false;
+                        knowledge[k].heard = false;
                         if (!knowledge[k].known) continue;
                         knowledge[k].age += delta;
                         if (knowledge[k].age > settings.memoryDuration)
@@ -190,6 +221,9 @@ namespace FpsManager
                         }
                     }
                 }
+
+            Array.Copy(positions, previous, count);
+            hasPrevious = true;
         }
     }
 }
