@@ -12,17 +12,45 @@ public static class AutonomyChecks
         for(int i=0;i<10;i++) { p[i]=new Vector2(500+i*100,500); f[i]=new Vector2(-1,0); team[i]=1; live[i]=true; arrived[i]=true; aim[i]=85; }
         p[0]=new Vector2(14,20); p[1]=new Vector2(20,20); f[0]=new Vector2(1,0); team[0]=0;
         var vision=new VisionSystem(game.Navigation,new VisionSettings(),10); vision.LegacyFootsteps=false;
+        // Player 9 is the far away team mate: they are nowhere near any of this and must
+        // still end up knowing, because sound is shared across the side.
+        team[9]=0;
         foreach(SoundKind kind in Enum.GetValues(typeof(SoundKind)))
         {
+            // The bomb beeps with no owner, so it is audible to both sides. Take the only
+            // nearby member of the other team out for that case, otherwise their side
+            // hears it legitimately and there is nothing left to test the range with.
+            live[1]=kind!=SoundKind.Beep;
             var sound=new MatchSounds(); sound.Emit(kind==SoundKind.Beep?-1:1,p[1],kind);
             sound.Tick(.05f,p,team,live,game.Navigation,vision);
-            if(!sound.Heard(0).known||sound.Heard(0).kind!=kind||sound.Heard(2).known) throw new Exception("Sound range/source failed: "+kind);
+            if(!sound.Heard(0).known||sound.Heard(0).kind!=kind) throw new Exception("Sound not picked up: "+kind);
+            if(sound.Heard(2).known) throw new Exception("A side with nobody in range heard it: "+kind);
+            if(!sound.Heard(9).known) throw new Exception("Sound was not shared with a distant team mate: "+kind);
             if(sound.Heard(0).position==p[1]) throw new Exception("Sound leaked exact position");
             if(vision.Sees(0,1)) throw new Exception("Sound grants vision");
             sound.Tick(4.1f,p,team,live,game.Navigation,vision);
-            if(sound.Heard(0).known) throw new Exception("Sound never expires");
+            if(sound.Heard(0).known||sound.Heard(9).known) throw new Exception("Sound never expires");
         }
-        Debug.Log("AI_CASE_OK seven-sound-types-range-memory-no-vision");
+        live[1]=true; team[9]=1;
+        Debug.Log("AI_CASE_OK seven-sound-types-range-memory-team-shared-no-vision");
+
+        // A dead player stops feeding the team pool, and nothing they already called is
+        // taken back out of it.
+        team[9]=0;
+        var legacy=new MatchSounds();
+        legacy.Emit(1,p[1],SoundKind.Footstep);
+        legacy.Tick(.05f,p,team,live,game.Navigation,vision);
+        if(!legacy.Heard(9).known) throw new Exception("A living spotter did not share the cue");
+        Vector2 called=legacy.Heard(9).position;
+        live[0]=false;                                   // the only ear near the action dies
+        legacy.Emit(1,new Vector2(30,20),SoundKind.Footstep);
+        legacy.Tick(.05f,p,team,live,game.Navigation,vision);
+        if(legacy.Heard(9).position!=called) throw new Exception("A dead player kept gathering information");
+        if(!legacy.Heard(9).known) throw new Exception("What a dead player already called was lost");
+        legacy.Tick(4.1f,p,team,live,game.Navigation,vision);
+        if(legacy.Heard(9).known) throw new Exception("An old cue never went stale");
+        live[0]=true; team[9]=1;
+        Debug.Log("AI_CASE_OK dead-players-keep-what-they-called-and-stop-listening");
         var brain=new PlayerAutonomy(1,game.Navigation); brain.Walking[0]=true; brain.Footstep(0,p[0],10);
         if(brain.Sounds.Emitted[(int)SoundKind.Footstep]!=0) throw new Exception("Walking made footsteps");
         brain.Walking[0]=false; brain.Footstep(0,p[0],3);

@@ -320,6 +320,36 @@ namespace FpsManager
             }
             if(roundMode&&autonomy!=null) autonomy.Footstep(player,MapPosition(player),Vector2.Distance(previousPosition,MapPosition(player)));
         }
+        // Turns a moving player toward whatever their team currently has a contact on,
+        // limited to what they could plausibly cover while walking. Before this a player
+        // faced their travel direction and nothing else, so two enemies crossing a corridor
+        // on different headings passed each other without either one ever looking.
+        void AimWhileMoving(int player, float tick)
+        {
+            int team=teamIndex[player];
+            Vector2 from=MapPosition(player), travel=MapFacing(player);
+            int best=-1; float distance=float.MaxValue;
+            for(int enemy=0;enemy<actors.Count;enemy++)
+            {
+                if(teamIndex[enemy]==team||!combat.Alive(enemy)) continue;
+                var contact=vision.Knowledge(team,enemy);
+                if(!contact.known) continue;
+                Vector2 to=contact.lastKnownPosition-from;
+                float candidate=to.magnitude;
+                if(candidate>visionSettings.maxRange||candidate>=distance) continue;
+                if(Mathf.Abs(CombatSystem.SignedAngle(travel,to))>90f) continue;   // never behind
+                distance=candidate; best=enemy;
+            }
+            if(best>=0) { FaceWatch(player,vision.Knowledge(team,best).lastKnownPosition-from,tick); return; }
+            // Nothing known: sweep the angles either side of the way you are walking. A
+            // player whose view is welded to their own heading never notices anyone on a
+            // crossing path, and since neither of them looks, neither of them ever knows
+            // there is something to look at.
+            float phase=(elapsed/2.6f+player*.37f)*2f*Mathf.PI;
+            float sweep=Mathf.Sin(phase)*45f*Mathf.Deg2Rad;
+            float heading=Mathf.Atan2(travel.y,travel.x)+sweep;
+            FaceWatch(player,new Vector2(Mathf.Cos(heading),Mathf.Sin(heading)),tick);
+        }
         void FaceWatch(int player, Vector2 watch, float tick)
         {
             if(watch.sqrMagnitude<.0001f) return;
@@ -572,7 +602,13 @@ namespace FpsManager
                 // A player breaking off ignores that and keeps moving.
                 if(!objective.disengage&&combat.Engaging(i)) continue;
                 if(objective.valid) MoveTo(i,objective.destination);
-                if(routeValid[i]&&routeSteps[i]<routes[i].Count) { StepRoute(i,tick); moving[i]=true; }
+                if(routeValid[i]&&routeSteps[i]<routes[i].Count)
+                {
+                    StepRoute(i,tick); moving[i]=true;
+                    // Walking somewhere does not mean staring at your own feet. Check the
+                    // angle the team has a contact on, as long as it is not behind you.
+                    if(!objective.disengage) AimWhileMoving(i,tick);
+                }
                 else if(objective.valid) FaceWatch(i,objective.watch,tick);
             }
             elapsed+=tick;

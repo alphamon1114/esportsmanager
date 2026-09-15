@@ -18,8 +18,12 @@ public static class VisionChecks
         var settings = new VisionSettings();
         var probe = new VisionSystem(navigation, settings, 2);
 
-        // 1. Open ground, observer facing the target.
-        Vector2 a = new Vector2(14, 20), b = new Vector2(24, 20);
+        // 1. Open ground, observer facing the target. Placed beyond peripheralRange on
+        //    purpose: inside it the cone is deliberately ignored, so a closer pair would
+        //    not test the cone at all.
+        Vector2 a = new Vector2(14, 20), b = new Vector2(34, 20);
+        if (Vector2.Distance(a, b) <= settings.peripheralRange)
+            throw new Exception("The cone cases must be measured outside peripheral range");
         if (!navigation.Clear(a, a) || !navigation.Clear(b, b)) throw new Exception("Vision probe points are not in walkable space");
         if (!navigation.SightClear(a, b)) throw new Exception("Vision probe points are not in open ground");
         if (!probe.LineOfSight(a, b - a, b)) throw new Exception("Frontal open sight line was blocked");

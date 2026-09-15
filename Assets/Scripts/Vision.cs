@@ -10,7 +10,10 @@ namespace FpsManager
     {
         public float fieldOfViewDegrees = 100f;   // total horizontal cone, centred on the facing direction
         public float maxRange = 55f;              // hard sight limit
-        public float peripheralRange = 5f;        // inside this radius the cone is ignored
+        // Close range awareness. Players cannot turn their heads independently of their
+        // body here, so without a usable periphery two people walking past each other at
+        // arm's length both stare straight ahead and neither reacts.
+        public float peripheralRange = 10f;
         public float recognitionBase = .15f;      // exposure needed before a target registers
         public float recognitionPerUnit = .004f;  // extra exposure per unit of distance
         public float exposureDecay = .5f;         // share of delta removed once exposure breaks

@@ -7,17 +7,27 @@ namespace FpsManager
     public struct HeardSound { public bool known; public Vector2 position; public SoundKind kind; public float age; }
     public struct SoundPulse { public int source; public Vector2 position; public SoundKind kind; }
     // Per-listener anonymous sound memory. True source IDs never enter HeardSound.
+    // Sound is a team asset. Whatever one living player picks up, the whole side knows
+    // about a moment later: that is what calling it out is. A dead player stops adding to
+    // the pool, but nothing they already called is taken back out of it.
     public sealed class MatchSounds
     {
         readonly List<SoundPulse> pending=new List<SoundPulse>();
+        readonly List<HeardSound>[] shared={ new List<HeardSound>(), new List<HeardSound>() };
         readonly HeardSound[] heard=new HeardSound[10];
         public readonly int[] Emitted=new int[7];
         public HeardSound Heard(int i) { return heard[i]; }
+        public int TeamCues(int team) { return shared[team].Count; }
         public void Emit(int source,Vector2 position,SoundKind kind) { pending.Add(new SoundPulse{source=source,position=position,kind=kind}); Emitted[(int)kind]++; }
         public static float Range(SoundKind kind) { return kind==SoundKind.Gunshot?55:kind==SoundKind.Beep?40:kind==SoundKind.Reload?12:kind==SoundKind.Plant||kind==SoundKind.Defuse?16:18; }
         public void Tick(float dt,Vector2[] positions,int[] teams,bool[] alive,DeploymentNavigation navigation,VisionSystem vision)
         {
-            for(int i=0;i<10;i++) { heard[i].age+=dt; if(heard[i].age>4) heard[i].known=false; }
+            for(int team=0;team<2;team++)
+                for(int j=shared[team].Count-1;j>=0;j--)
+                {
+                    var record=shared[team][j]; record.age+=dt;
+                    if(record.age>4) shared[team].RemoveAt(j); else shared[team][j]=record;
+                }
             foreach(var pulse in pending) for(int listener=0;listener<10;listener++)
             {
                 if(!alive[listener]||listener==pulse.source) continue;
@@ -26,12 +36,34 @@ namespace FpsManager
                 if(Vector2.Distance(positions[listener],pulse.position)>range) continue;
                 // Coarse 4-unit acoustic region rather than a precise tracked position.
                 Vector2 estimate=new Vector2(Mathf.Floor(pulse.position.x/4)*4+2,Mathf.Floor(pulse.position.y/4)*4+2);
-                heard[listener]=new HeardSound{known=true,position=estimate,kind=pulse.kind,age=0};
+                Record(teams[listener],estimate,pulse.kind);
                 if(pulse.source>=0) vision.ReportSound(teams[listener],pulse.source,listener,estimate);
             }
             pending.Clear();
+            // Each living player reads the team pool and takes the cue nearest to them.
+            // A dead player keeps whatever they last held and stops updating.
+            for(int i=0;i<10;i++)
+            {
+                if(!alive[i]) continue;
+                var best=new HeardSound(); float distance=float.MaxValue;
+                foreach(var record in shared[teams[i]])
+                {
+                    float candidate=Vector2.Distance(positions[i],record.position);
+                    if(candidate>=distance) continue;
+                    distance=candidate; best=record;
+                }
+                heard[i]=best;
+            }
+        }
+        void Record(int team,Vector2 estimate,SoundKind kind)
+        {
+            for(int j=0;j<shared[team].Count;j++)
+                if(Vector2.Distance(shared[team][j].position,estimate)<.01f)
+                { shared[team][j]=new HeardSound{known=true,position=estimate,kind=kind,age=0}; return; }
+            shared[team].Add(new HeardSound{known=true,position=estimate,kind=kind,age=0});
         }
     }
+
     public sealed class PlayerAutonomy
     {
         public readonly MatchSounds Sounds=new MatchSounds();
@@ -48,6 +80,13 @@ namespace FpsManager
         float radioAge,bombPulse;
         public PlayerAutonomy(int seed,DeploymentNavigation navigation)
         { this.navigation=navigation; for(int i=0;i<10;i++) random[i]=new DeterministicRandom(unchecked(seed^(i+1)*19349663)); }
+        // One smoke per angle. Without this every player on a push threw their own onto
+        // the same spot and the corridor stayed blind for the rest of the round.
+        bool SmokeNear(Vector2 point)
+        {
+            foreach(var u in utilities) if(u.smoke&&u.life>0&&Vector2.Distance(u.position,point)<8f) return true;
+            return false;
+        }
         public bool ClearSight(Vector2 a,Vector2 b)
         {
             foreach(var u in utilities) if(u.smoke&&u.fuse<=0&&u.life>0)
@@ -99,23 +138,25 @@ namespace FpsManager
             if((visible||noise.known)&&utilityCooldown[i]<=0)
             {
                 Vector2 target=visible?contact:noise.position;
-                bool entering=order.task==PlayerTask.PushSite||order.task==PlayerTask.PlantBomb||order.task==PlayerTask.Trade;
-                // Attackers open a site: cut the angle they know is held, or blind it on
-                // the way in. Defenders still use smoke to cover a retreat.
-                bool smoke=entering?!visible:(order.disengage||combat.Health(i)<45);
+                float reach=Vector2.Distance(position,target);
+                // Smoke cuts a long angle you do not intend to fight through; up close it
+                // would blind the thrower's own push. Throwing it at anything merely heard
+                // covered the map: a third of every clear sight line ran through smoke.
+                bool smoke=order.disengage||combat.Health(i)<45||reach>20f;
                 string item=smoke?"smoke":"flash";
                 var equipment=new List<string>(inventory.equipment);
                 float distance=Vector2.Distance(position,target);
                 // Straight throws only until ballistic grenade geometry is implemented.
                 Vector2 landing=Vector2.MoveTowards(position,target,Mathf.Min(distance,14));
-                if(distance>5&&distance<22&&equipment.Contains(item)&&navigation.SightClear(position,landing))
+                if(smoke&&SmokeNear(landing)) { }
+                else if(distance>5&&distance<22&&equipment.Contains(item)&&navigation.SightClear(position,landing))
                 {
                     float error=(100-player.stats.utility)/100f*2;
                     landing+=new Vector2(random[i].NextSigned(),random[i].NextSigned())*error;
                     if(navigation.Clear(landing,landing)&&navigation.SightClear(position,landing))
                     {
                         equipment.Remove(item); inventory.equipment=equipment.ToArray();
-                        utilities.Add(new Utility{owner=i,position=landing,smoke=smoke,fuse=1,life=smoke?12:.1f});
+                        utilities.Add(new Utility{owner=i,position=landing,smoke=smoke,fuse=1,life=smoke?9:.1f});
                         Sounds.Emit(i,position,SoundKind.Throw); Throws++; utilityCooldown[i]=8;
                         if(team==0) { Radio=player.handle+": "+(smoke?"Smoke out!":"Flash out!"); radioAge=2.5f; }
                     }

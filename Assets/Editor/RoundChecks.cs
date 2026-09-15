@@ -88,7 +88,59 @@ public static class RoundChecks
         if (!facing.threwEntering) throw new Exception("No attacker ever used utility while taking a site");
         Debug.Log("ROUND_CASE_OK cover-trade-entry-utility");
 
-        Debug.Log("ROUND_ALL_OK: termination, determinism, outcome variety, plant and fall back and rotate and retake all occur, observed information only, bomb explodes, bomb defused, defenders face the approach, cover and trade and entry utility all occur.");
+        // 10. Enemies with a clear line between them have to end up fighting. Two separate
+        //     changes have broken this without breaking anything else: view locked to the
+        //     direction of travel, so crossing paths never looked at each other, and smoke
+        //     thrown at every noise, which put a third of all sight lines behind a wall of
+        //     it. Both times rounds still finished and every other check passed.
+        var contact = ContactRate(game);
+        if (contact.Seen < 25f)
+            throw new Exception("Enemies in plain sight of each other are not engaging: only "
+                + contact.Seen.ToString("F0") + "% of clear sight lines were actually seen (want 25% or more)");
+        if (contact.Smoked > 25f)
+            throw new Exception("Smoke is blanketing the map: " + contact.Smoked.ToString("F0")
+                + "% of clear sight lines run through it (want under 25%)");
+        Debug.Log("ROUND_CASE_OK engagement " + contact.Seen.ToString("F0") + "% of clear sight lines seen, "
+            + contact.Smoked.ToString("F0") + "% behind smoke");
+
+        Debug.Log("ROUND_ALL_OK: termination, determinism, outcome variety, plant and fall back and rotate and retake all occur, observed information only, bomb explodes, bomb defused, defenders face the approach, cover and trade and entry utility all occur, enemies in sight engage.");
+    }
+
+    struct Contact
+    {
+        public long clear, seen, smoked;
+        public float Seen { get { return clear == 0 ? 0f : 100f * seen / clear; } }
+        public float Smoked { get { return clear == 0 ? 0f : 100f * smoked / clear; } }
+    }
+
+    // How often a clear geometric line between two enemies turns into one of them actually
+    // seeing the other, and how much of the rest is behind the players' own smoke.
+    static Contact ContactRate(Prototype game)
+    {
+        var result = new Contact();
+        var range = new VisionSettings().maxRange;
+        for (int seed = 1; seed <= 10; seed++)
+        {
+            game.SetRoundSeed(seed); game.PlaceTeams(); game.PrepareIglOrders(); game.BeginRound();
+            var director = game.Director;
+            for (int tick = 0; tick < TickBudget && director.Phase != RoundPhase.Ended; tick++)
+            {
+                game.SimulateMovement(.05f);
+                for (int a = 0; a < 10; a++)
+                    for (int b = 0; b < 10; b++)
+                    {
+                        if (a == b || game.TeamIndexOf(a) == game.TeamIndexOf(b)) continue;
+                        if (!game.IsAlive(a) || !game.IsAlive(b)) continue;
+                        Vector2 from = game.MapPosition(a), to = game.MapPosition(b);
+                        if (Vector2.Distance(from, to) > range || !game.Navigation.SightClear(from, to)) continue;
+                        result.clear++;
+                        if (game.Vision.Sees(a, b)) result.seen++;
+                        else if (!game.Autonomy.ClearSight(from, to)) result.smoked++;
+                    }
+            }
+        }
+        if (result.clear == 0) throw new Exception("No enemy pair ever had a clear line between them");
+        return result;
     }
 
     struct Facing
