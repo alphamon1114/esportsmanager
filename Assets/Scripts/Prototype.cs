@@ -36,6 +36,8 @@ namespace FpsManager
         Material deadMaterial;
         int roundSeed = 12345;
         RoundDirector director;
+        PlayerAutonomy autonomy;
+        public PlayerAutonomy Autonomy { get { return autonomy; } }
         readonly RoundSettings roundSettings = new RoundSettings();
         MapLayout layout;
         bool roundMode;
@@ -228,14 +230,16 @@ namespace FpsManager
             destinations[player]=destination; repathDelay[player]=.5f;
             try
             {
-                routes[player]=navigation.Route(MapPosition(player),destination,new List<Vector2>());
+                routes[player]=navigation.Clear(MapPosition(player),destination)
+                    ?new List<Vector2>{destination}:navigation.Route(MapPosition(player),destination,new List<Vector2>());
                 routeSteps[player]=0; routeValid[player]=true;
             }
             catch(InvalidOperationException) { routeValid[player]=false; }
         }
         void StepRoute(int player, float tick)
         {
-            float remaining=tick*5f;
+            Vector2 previousPosition=MapPosition(player);
+            float remaining=tick*5f*(roundMode&&autonomy!=null&&autonomy.Walking[player]?.48f:1f);
             while(remaining>0&&routeSteps[player]<routes[player].Count)
             {
                 Vector3 target=World(routes[player][routeSteps[player]]),position=actors[player].transform.position;
@@ -247,6 +251,7 @@ namespace FpsManager
                 remaining-=step;
                 if(distance<=step+.001f) routeSteps[player]++; else break;
             }
+            if(roundMode&&autonomy!=null) autonomy.Footstep(player,MapPosition(player),Vector2.Distance(previousPosition,MapPosition(player)));
         }
         void FaceWatch(int player, Vector2 watch, float tick)
         {
@@ -258,7 +263,9 @@ namespace FpsManager
         {
             deploymentStarted=false; paused=false; elapsed=0; DeploymentComplete=false; roundMode=false;
             ClearRoutes(); preparationError=null;
-            if(vision!=null) vision.Reset();
+            autonomy=null;
+            if(vision!=null) { vision.Reset(); vision.LegacyFootsteps=true; vision.ExtraSight=null; vision.Blinded=null; }
+            if(combat!=null) { combat.AmmoEnabled=false; combat.ShotFired=null; combat.ReloadStarted=null; }
             if(combat!=null) combat.Reset(roundSeed);
             if(director!=null) director.Reset();
             for(int i=0;i<alive.Length;i++) { alive[i]=true; arrived[i]=false; moving[i]=false; }
@@ -397,6 +404,11 @@ namespace FpsManager
                 destinations[i]=homeAnchor[i];
             }
             ClearRoutes();
+            autonomy=new PlayerAutonomy(roundSeed,navigation);
+            vision.LegacyFootsteps=false; vision.ExtraSight=autonomy.ClearSight; vision.Blinded=autonomy.Blinded;
+            combat.AmmoEnabled=true;
+            combat.ShotFired=i=>autonomy.Sounds.Emit(i,MapPosition(i),SoundKind.Gunshot);
+            combat.ReloadStarted=i=>autonomy.Sounds.Emit(i,MapPosition(i),SoundKind.Reload);
             director.Begin(roundSeed,teamIndex,ctTeam);
             deploymentStarted=true; roundMode=true; paused=false; DeploymentComplete=false; preparationError=null;
             // Everyone may shoot from the first tick; the stand-still-to-engage rule is a
@@ -476,12 +488,13 @@ namespace FpsManager
         void SimulateRound(float tick)
         {
             if(director.Phase==RoundPhase.Ended) return;
+            autonomy.Tick(tick,visionPositions,visionFacing,alive);
             for(int i=0;i<actors.Count;i++)
             {
                 repathDelay[i]=Mathf.Max(0f,repathDelay[i]-tick);
                 if(!combat.Alive(i)) { routeValid[i]=false; continue; }
                 moving[i]=false;
-                var objective=director.Objective(i);
+                var objective=autonomy.Decide(i,director.Objective(i),MapPosition(i),Data.players[i],matchState[i],combat,vision,teamIndex[i],teamIndex[i]==ctTeam);
                 // A player with something to shoot at stops and fights. Moving accuracy is
                 // not modelled yet, so standing still is the honest simplification.
                 // A player breaking off ignores that and keeps moving.
@@ -492,7 +505,9 @@ namespace FpsManager
             }
             elapsed+=tick;
             UpdateSenses(tick);
+            autonomy.Sounds.Tick(tick,visionPositions,teamIndex,alive,navigation,vision);
             director.Tick(tick,visionPositions,teamIndex,ctTeam,homeAnchor,composureStats,vision,combat);
+            autonomy.BombAudio(tick,director,visionPositions,teamIndex,ctTeam,combat);
         }
         public void ValidateMovementGeometry()
         {
@@ -554,7 +569,7 @@ namespace FpsManager
                 else continue;                          // no contact: the marker is not drawn at all
                 var p=mapCamera.WorldToViewportPoint(World(shown));
                 string label=!living?"x "+Data.players[i].handle
-                    :own||!fogOfWar||contact.visible?Data.players[i].handle:Data.players[i].handle+"?";
+                    :own||!fogOfWar||contact.visible?Data.players[i].handle:(contact.anonymous?"Sound?":Data.players[i].handle+"?");
                 if(GUI.Button(new Rect(map.x+p.x*map.width-31,map.y+(1-p.y)*map.height-11,62,22),label)) Select(i);
             }
             GUI.Label(new Rect(683,76,570,24),"SELECTED PLAYER / FIRST PERSON");
@@ -577,13 +592,14 @@ namespace FpsManager
                     if(GUI.Button(new Rect(685+n++*114,614+team*62,110,27),name)) Select(index);
                 }
             }
+            if(autonomy!=null&&autonomy.Radio!=null) GUI.Label(new Rect(685,537,570,25),autonomy.Radio);
             string contacts="";
             for(int i=0;i<Data.players.Length;i++)
             {
                 if(teamIndex[i]==viewerTeam) continue;
                 var contact=vision.Knowledge(viewerTeam,i);
                 if(!contact.known) continue;
-                contacts+=(contacts.Length>0?"  ":"")+Data.players[i].handle+(contact.visible?"*":" "+contact.age.ToString("F1")+"s");
+                contacts+=(contacts.Length>0?"  ":"")+(contact.anonymous?"Sound?":Data.players[i].handle)+(contact.visible?"*":" "+contact.age.ToString("F1")+"s");
             }
             GUI.Label(new Rect(685,708,570,22),"SPIRIT CONTACTS / "+(contacts.Length>0?contacts:"none")+"   (* = seen now)");
             if(roundMode && showDebugInfo)

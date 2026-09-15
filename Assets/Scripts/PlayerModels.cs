@@ -5,7 +5,7 @@ namespace FpsManager
     [Serializable] public class PlayerMatchState
     {
         public int credits = 800;
-        public string[] equipment = { "ak_47" };
+        public string[] equipment = { "ak_47", "flash", "smoke" };
     }
     [Serializable] public class StatBlock { public int aim, utility, movement, charisma, composure; }
     [Serializable] public class Proficiency { public string weapon; public int stars; }

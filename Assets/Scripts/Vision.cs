@@ -28,7 +28,7 @@ namespace FpsManager
     // which stands in for voice communication until a radio system exists.
     public struct ContactInfo
     {
-        public bool visible;              // a team mate has line of sight right now
+        public bool anonymous; public bool visible;              // a team mate has line of sight right now
         public bool heard;                // picked up by sound this tick, without being seen
         public bool known;                // visible, heard, or remembered within memoryDuration
         public Vector2 lastKnownPosition; // map coordinates of the last confirmed sighting
@@ -50,6 +50,16 @@ namespace FpsManager
         readonly Vector2[] previous;
         readonly float cosHalfAngle;
         bool hasPrevious;
+        public bool LegacyFootsteps=true;
+        public bool[] Blinded;
+        public Func<Vector2,Vector2,bool> ExtraSight;
+        public void ReportSound(int viewerTeam,int target,int listener,Vector2 estimate)
+        {
+            int k=viewerTeam*count+target;
+            if(knowledge[k].visible) return;
+            knowledge[k].known=true; knowledge[k].heard=true; knowledge[k].anonymous=true;
+            knowledge[k].lastKnownPosition=estimate; knowledge[k].age=0; knowledge[k].spotter=listener;
+        }
 
         public VisionSystem(DeploymentNavigation navigation, VisionSettings settings, int playerCount)
         {
@@ -114,7 +124,7 @@ namespace FpsManager
         // actually moving. Returns the team mate that hears them, or -1.
         int Listener(int viewerTeam, int target, float delta, Vector2[] positions, int[] team, bool[] alive)
         {
-            if (settings.hearingRange <= 0f || !hasPrevious || delta <= 0f) return -1;
+            if (!LegacyFootsteps || settings.hearingRange <= 0f || !hasPrevious || delta <= 0f) return -1;
             if (Vector2.Distance(positions[target], previous[target]) / delta < settings.hearingSpeed) return -1;
             for (int observer = 0; observer < count; observer++)
             {
@@ -136,7 +146,7 @@ namespace FpsManager
                 if (facing.sqrMagnitude < .000001f) return false;
                 if (Vector2.Dot(delta / Mathf.Max(distance, .000001f), facing.normalized) < cosHalfAngle) return false;
             }
-            return navigation.SightClear(eye, target);
+            return navigation.SightClear(eye, target) && (ExtraSight==null || ExtraSight(eye,target));
         }
 
         public void Tick(float delta, Vector2[] positions, Vector2[] facing, int[] team)
@@ -165,7 +175,7 @@ namespace FpsManager
                     if (observer == target || team[observer] == team[target] || !participating) { direct[i] = false; exposure[i] = 0; continue; }
                     float distance = Vector2.Distance(positions[observer], positions[target]);
                     float required = RecognitionTime(distance);
-                    bool line = LineOfSight(positions[observer], facing[observer], positions[target]);
+                    bool line = (Blinded==null || !Blinded[observer]) && LineOfSight(positions[observer], facing[observer], positions[target]);
                     if (line) exposure[i] = Mathf.Min(exposure[i] + delta, required + 1f);
                     else exposure[i] = Mathf.Max(0f, exposure[i] - delta * settings.exposureDecay);
                     // Exposure only gates how long a visible target takes to register.
@@ -201,7 +211,7 @@ namespace FpsManager
                     int listener = spotter >= 0 ? -1 : Listener(viewerTeam, target, delta, positions, team, alive);
                     if (spotter >= 0 || listener >= 0)
                     {
-                        knowledge[k].visible = spotter >= 0;
+                        knowledge[k].visible = spotter >= 0; knowledge[k].anonymous=spotter<0;
                         knowledge[k].heard = spotter < 0;
                         knowledge[k].known = true;
                         knowledge[k].lastKnownPosition = positions[target];

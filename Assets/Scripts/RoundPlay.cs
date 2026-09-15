@@ -64,7 +64,8 @@ namespace FpsManager
         readonly MapLayout layout;
         readonly int count;
         readonly PlayerObjective[] objectives;
-        readonly int[] slot;              // stable index of a player within their team
+        readonly int[] slot;
+        readonly bool[] ready=new bool[10];              // stable index of a player within their team
         DeterministicRandom random;
 
         public RoundPhase Phase { get; private set; }
@@ -106,7 +107,7 @@ namespace FpsManager
             Outcome = RoundOutcome.None;
             Clock = 0f; PlantProgress = 0f; DefuseProgress = 0f; BombTimer = 0f;
             PlantedSite = -1; Carrier = -1; BombDropped = false; TargetSite = 0;
-            for (int i = 0; i < count; i++) objectives[i] = new PlayerObjective();
+            for (int i = 0; i < count; i++) { objectives[i] = new PlayerObjective(); ready[i]=false; }
         }
 
         // ctTeam is the team index currently playing counter terrorist.
@@ -131,6 +132,8 @@ namespace FpsManager
             Clock += delta;
             int tTeam = 1 - ctTeam;
 
+            for(int i=0;i<count;i++) if(team[i]!=ctTeam && combat.Alive(i))
+                ready[i] |= Vector2.Distance(positions[i],homeAnchor[i]) <= settings.interactRadius*2 || Clock >= 9+slot[i]*2;
             UpdateBombCarrier(positions, team, ctTeam, combat);
             if (Phase == RoundPhase.Setup && ReadyToExecute(positions, team, ctTeam, homeAnchor, combat))
                 Phase = RoundPhase.Execute;
@@ -190,15 +193,8 @@ namespace FpsManager
         // Attackers leave their lane together, or when the clock forces them out.
         bool ReadyToExecute(Vector2[] positions, int[] team, int ctTeam, Vector2[] homeAnchor, CombatSystem combat)
         {
-            if (Clock >= settings.executeDelaySeconds) return true;
-            bool any = false;
-            for (int i = 0; i < count; i++)
-            {
-                if (team[i] == ctTeam || !combat.Alive(i)) continue;
-                any = true;
-                if (Vector2.Distance(positions[i], homeAnchor[i]) > settings.interactRadius * 2f) return false;
-            }
-            return any;
+            for(int i=0;i<count;i++) if(team[i]!=ctTeam && combat.Alive(i) && ready[i]) return true;
+            return false;
         }
 
         void UpdatePlanting(float delta, Vector2[] positions, int[] team, int tTeam, VisionSystem vision, CombatSystem combat)
@@ -247,7 +243,7 @@ namespace FpsManager
                 objective.watch = layout.Sites[site] - BombPosition;
                 return objective;
             }
-            if (Phase == RoundPhase.Setup)
+            if (!ready[player] && Phase != RoundPhase.PostPlant)
             {
                 objective.task = PlayerTask.MoveToLane;
                 objective.destination = homeAnchor[player];

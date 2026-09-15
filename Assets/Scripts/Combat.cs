@@ -70,6 +70,17 @@ namespace FpsManager
     // moving engage; stopping, taking cover and repositioning belong to the next step.
     public sealed class CombatSystem
     {
+        public bool AmmoEnabled;
+        public Action<int> ShotFired, ReloadStarted;
+        readonly int[] magazine=new int[10],reserve=new int[10];
+        readonly float[] reload=new float[10];
+        public int Magazine(int i) { return magazine[i]; }
+        public bool Reloading(int i) { return reload[i]>0; }
+        public void RequestReload(int i)
+        {
+            if(!AmmoEnabled||!Alive(i)||reload[i]>0||magazine[i]>=30||reserve[i]<=0) return;
+            reload[i]=2.2f; if(ReloadStarted!=null) ReloadStarted(i);
+        }
         readonly CombatSettings settings;
         readonly WeaponProfile weapon;
         readonly int count;
@@ -108,7 +119,7 @@ namespace FpsManager
                 states[i].target = -1;
                 states[i].reaction = 0f;
                 states[i].cooldown = 0f;
-                killer[i] = -1;
+                killer[i] = -1; magazine[i]=30; reserve[i]=90; reload[i]=0;
             }
         }
 
@@ -153,6 +164,16 @@ namespace FpsManager
             for (int i = 0; i < count; i++)
             {
                 shotTime[i] = float.MaxValue;
+                if(AmmoEnabled&&states[i].alive)
+                {
+                    if(reload[i]>0)
+                    {
+                        reload[i]-=delta;
+                        if(reload[i]<=0) { int rounds=Math.Min(30-magazine[i],reserve[i]); magazine[i]+=rounds; reserve[i]-=rounds; }
+                        states[i].target=-1; continue;
+                    }
+                    if(magazine[i]<=0) { RequestReload(i); states[i].target=-1; continue; }
+                }
                 if (!states[i].alive) { states[i].target = -1; continue; }
                 if (!arrived[i])
                 {
@@ -216,7 +237,7 @@ namespace FpsManager
         {
             // The caller owns cooldown: it carries the sub-tick remainder that orders
             // shots. Overwriting it here would flatten every shooter to the same schedule.
-            Shots++;
+            Shots++; if(AmmoEnabled) magazine[shooter]--; if(ShotFired!=null) ShotFired(shooter);
             float error = aimOffsetDegrees + random.NextSigned() * SpreadDegrees(aimStat);
             float lateral = Mathf.Abs(Mathf.Tan(error * Mathf.Deg2Rad)) * distance;
             if (lateral > settings.targetRadius) return;

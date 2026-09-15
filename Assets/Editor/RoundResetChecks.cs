@@ -10,7 +10,7 @@ public static class RoundResetChecks
         var game=new GameObject("ResetChecks").AddComponent<Prototype>(); game.Initialize();
         var spawn=new Vector2[10]; for(int i=0;i<10;i++) spawn[i]=game.MapPosition(i);
         game.MatchState(0).credits=4321;
-        game.MatchState(0).equipment=new[]{"awp","usp_s","smoke"};
+        game.MatchState(0).equipment=new[]{"awp","usp_s"};
         game.SetRoundSeed(40); game.PrepareNextRound();
         var replay=new Vector2[10]; for(int i=0;i<10;i++) replay[i]=game.MapPosition(i);
         game.SetRoundSeed(40); game.PrepareNextRound();
@@ -44,7 +44,7 @@ public static class RoundResetChecks
             for(int tick=0;tick<100;tick++) game.AdvanceFrame(.05f);
             if(game.CompletedRounds!=before+1||game.Combat.Shots!=0||game.Vision.KnownCount(0)!=0) throw new Exception("Preparation kept simulating");
             game.AssignZone(0,2);
-            if(game.MatchState(0).credits!=4321||string.Join(",",game.MatchState(0).equipment)!="awp,usp_s,smoke") throw new Exception("Inventory lost");
+            if(game.MatchState(0).credits!=4321||string.Join(",",game.MatchState(0).equipment)!="awp,usp_s") throw new Exception("Inventory lost");
             game.ValidateMovementGeometry();
         }
         Debug.Log("RESET_CASE_OK automatic-round-reset-and-persistence");
