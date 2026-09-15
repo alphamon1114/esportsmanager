@@ -21,6 +21,14 @@ namespace FpsManager
         readonly Vector2[] visionPositions = new Vector2[10];
         readonly Vector2[] visionFacing = new Vector2[10];
         bool fogOfWar = true;
+        CombatSystem combat;
+        readonly CombatSettings combatSettings = new CombatSettings();
+        readonly WeaponProfile weapon = new WeaponProfile();
+        readonly bool[] alive = new bool[10];
+        readonly bool[] arrived = new bool[10];
+        readonly int[] aimStats = new int[10];
+        Material deadMaterial;
+        int roundSeed = 12345;
         readonly int[] assignments = { 0, 1, 2, 0, 2, 0, 1, 2, 0, 2 };
         readonly List<List<Vector2>> routes = new List<List<Vector2>>();
         readonly int[] routeSteps = new int[10];
@@ -47,7 +55,10 @@ namespace FpsManager
             navigation = new DeploymentNavigation(obstacles);
             for (int i = 0; i < Data.players.Length; i++) teamIndex[i] = Data.players[i].teamId == Data.teams[0].id ? 0 : 1;
             vision = new VisionSystem(navigation, visionSettings, Data.players.Length);
+            combat = new CombatSystem(combatSettings, weapon, Data.players.Length);
+            for (int i = 0; i < Data.players.Length; i++) aimStats[i] = Data.players[i].stats.aim;
             ctMaterial=Material(new Color(.18f,.65f,1)); tMaterial=Material(new Color(1,.62f,.18f));
+            deadMaterial=Material(new Color(.30f,.30f,.32f));
             mapTexture = new RenderTexture(900,900,16);
             eyeTexture = new RenderTexture(800,450,16);
             mapCamera = NewCamera("Tactical camera", mapTexture);
@@ -125,6 +136,8 @@ namespace FpsManager
             deploymentStarted=false; paused=false; elapsed=0; DeploymentComplete=false;
             routes.Clear(); Array.Clear(routeSteps,0,routeSteps.Length); preparationError=null;
             if(vision!=null) vision.Reset();
+            if(combat!=null) combat.Reset(roundSeed);
+            for(int i=0;i<alive.Length;i++) { alive[i]=true; arrived[i]=false; }
             int ct=0,t=0;
             for(int i=0;i<actors.Count;i++)
             {
@@ -179,9 +192,16 @@ namespace FpsManager
         {
             Vector3 p=actors[player].transform.position; return new Vector2(p.x,100-p.z);
         }
-        // Detection runs whenever the clock runs, including while players stand still
-        // in preparation, so team knowledge is always in step with the shown positions.
-        void UpdateVision(float delta)
+        public CombatSystem Combat { get { return combat; } }
+        public bool IsAlive(int player) { return combat==null||combat.Alive(player); }
+        public int RoundSeed { get { return roundSeed; } }
+        public void SetRoundSeed(int seed) { roundSeed=seed; }
+        public int LivingCount(int team) { return combat.LivingCount(teamIndex,team); }
+        public bool RoundDecided { get { return combat!=null && (LivingCount(0)==0 || LivingCount(1)==0); } }
+        // Detection and engagement run whenever the clock runs, including while players
+        // stand still, so team knowledge stays in step with the shown positions.
+        // Order matters: move, then look, then shoot at what was just seen.
+        void UpdateSenses(float delta)
         {
             if(vision==null||Data==null) return;
             for(int i=0;i<actors.Count;i++)
@@ -190,33 +210,46 @@ namespace FpsManager
                 visionPositions[i]=new Vector2(p.x,100-p.z);
                 visionFacing[i]=new Vector2(f.x,-f.z);
             }
-            vision.Tick(delta,visionPositions,visionFacing,teamIndex);
+            combat.FillAlive(alive);
+            vision.Tick(delta,visionPositions,visionFacing,teamIndex,alive);
+            combat.Tick(delta,visionPositions,visionFacing,teamIndex,arrived,aimStats,vision);
+            combat.FillAlive(alive);
+            for(int i=0;i<actors.Count;i++)
+            {
+                if(!alive[i]) { actors[i].GetComponent<Renderer>().sharedMaterial=deadMaterial; continue; }
+                if(!combat.Engaging(i)) continue;
+                // Combat steers the shooter, so push its facing back onto the actor.
+                var f=visionFacing[i];
+                actors[i].transform.rotation=Quaternion.LookRotation(new Vector3(f.x,0,-f.y));
+            }
         }
         public void SimulateMovement(float delta)
         {
             float tick=Mathf.Min(delta,.1f);
             if(paused) return;
-            if(!deploymentStarted||DeploymentComplete) { UpdateVision(tick); return; }
+            if(!deploymentStarted||DeploymentComplete) { UpdateSenses(tick); return; }
             bool complete=true;
             for(int i=0;i<actors.Count;i++)
             {
-                if(routeSteps[i]>=routes[i].Count) continue;
-                float remaining=Mathf.Min(delta,.1f)*5f;
+                // A dead player stops where they fell and counts as finished.
+                if(!combat.Alive(i)) { routeSteps[i]=routes[i].Count; arrived[i]=true; continue; }
+                if(routeSteps[i]>=routes[i].Count) { arrived[i]=true; continue; }
+                float remaining=tick*5f;
                 while(remaining>0&&routeSteps[i]<routes[i].Count)
                 {
                     Vector3 target=World(routes[i][routeSteps[i]]),position=actors[i].transform.position;
                     Vector3 direction=target-position;
                     float distance=direction.magnitude;
-                    if(distance>.001f) actors[i].transform.rotation=Quaternion.RotateTowards(actors[i].transform.rotation,Quaternion.LookRotation(direction),360*Mathf.Min(delta,.1f));
+                    if(distance>.001f) actors[i].transform.rotation=Quaternion.RotateTowards(actors[i].transform.rotation,Quaternion.LookRotation(direction),360*tick);
                     float step=Mathf.Min(remaining,distance);
                     actors[i].transform.position=Vector3.MoveTowards(position,target,step);
                     remaining-=step;
                     if(distance<=step+.001f) routeSteps[i]++; else break;
                 }
-                if(routeSteps[i]<routes[i].Count) complete=false;
+                if(routeSteps[i]<routes[i].Count) complete=false; else arrived[i]=true;
             }
             elapsed+=tick; DeploymentComplete=complete;
-            UpdateVision(tick);
+            UpdateSenses(tick);
         }
         public void ValidateMovementGeometry()
         {
@@ -233,26 +266,31 @@ namespace FpsManager
             if(Data==null) return;
             GUI.matrix=Matrix4x4.Scale(new Vector3(Screen.width/1280f,Screen.height/800f,1));
             GUI.Label(new Rect(20,12,1000,25),"FPS MANAGER / YOUR TEAM: SPIRIT / OPPONENT: FALCONS");
-            GUI.Label(new Rect(20,39,1200,25),(deploymentStarted?"MOVEMENT TEST / "+elapsed.ToString("F1")+"s":"PREPARATION / Assign zones before starting")+" | Detection: line of sight only | Combat / economy: not connected");
+            GUI.Label(new Rect(20,39,1240,25),(deploymentStarted?"ROUND TEST / "+elapsed.ToString("F1")+"s":"PREPARATION / Assign zones before starting")
+                +"   ALIVE "+Data.teams[AlliedTeamIndex].name+" "+LivingCount(AlliedTeamIndex)+" : "+LivingCount(1-AlliedTeamIndex)+" "+Data.teams[1-AlliedTeamIndex].name
+                +"   SEED "+roundSeed+" | Rifle only, no economy or round scoring");
             Rect map=new Rect(20,80,650,650); GUI.DrawTexture(map,mapTexture,ScaleMode.StretchToFill);
             int viewerTeam=AlliedTeamIndex;
             for(int i=0;i<actors.Count;i++)
             {
-                bool own=teamIndex[i]==viewerTeam;
+                bool own=teamIndex[i]==viewerTeam,living=combat.Alive(i);
                 var contact=vision.Knowledge(viewerTeam,i);
                 Vector2 shown;
                 if(own||!fogOfWar) shown=MapPosition(i);
+                else if(!living) continue;              // a dead opponent is not tracked on the map
                 else if(contact.known) shown=contact.lastKnownPosition;
-                else continue;   // no contact: the marker is not drawn at all
+                else continue;                          // no contact: the marker is not drawn at all
                 var p=mapCamera.WorldToViewportPoint(World(shown));
-                string label=own||!fogOfWar||contact.visible?Data.players[i].handle:Data.players[i].handle+"?";
+                string label=!living?"x "+Data.players[i].handle
+                    :own||!fogOfWar||contact.visible?Data.players[i].handle:Data.players[i].handle+"?";
                 if(GUI.Button(new Rect(map.x+p.x*map.width-31,map.y+(1-p.y)*map.height-11,62,22),label)) Select(i);
             }
             GUI.Label(new Rect(683,76,570,24),"SELECTED PLAYER / FIRST PERSON");
             GUI.DrawTexture(new Rect(685,104,570,321),eyeTexture,ScaleMode.StretchToFill);
             GUI.Label(new Rect(964,252,20,25),"+");
             var player=Data.players[selected]; var s=player.stats;
-            GUI.Label(new Rect(685,433,570,25),player.handle+" / "+player.weaponPosition+" "+player.riflerRole);
+            GUI.Label(new Rect(685,433,570,25),player.handle+" / "+player.weaponPosition+" "+player.riflerRole
+                +"   HP "+(combat.Alive(selected)?Mathf.RoundToInt(combat.Health(selected)).ToString():"0 (down)"));
             GUI.Label(new Rect(685,459,570,25),$"AIM {s.aim}   UTIL {s.utility}   MOVE {s.movement}   CHA {s.charisma}   COMP {s.composure}");
             scroll=GUI.BeginScrollView(new Rect(685,490,570,42),scroll,new Rect(0,0,530,player.weapons.Length*21));
             for(int i=0;i<player.weapons.Length;i++) GUI.Label(new Rect(0,i*21,520,21),player.weapons[i].weapon+"   "+new string('*',player.weapons[i].stars));
@@ -270,7 +308,7 @@ namespace FpsManager
                 int n=0; GUI.Label(new Rect(685,590+team*62,570,23),Data.teams[team].name+(team==ctTeam?" / CT":" / T")+(!deploymentStarted && Data.teams[team].id==AlliedTeamId?"   B / Mid / A: "+counts[0]+" / "+counts[1]+" / "+counts[2]:""));
                 for(int i=0;i<Data.players.Length;i++) if(Data.players[i].teamId==Data.teams[team].id)
                 {
-                    int index=i; string name=Data.players[i].handle+(Data.teams[team].iglPlayerId==Data.players[i].id?" [IGL]":"");
+                    int index=i; string name=(combat.Alive(i)?"":"x ")+Data.players[i].handle+(Data.teams[team].iglPlayerId==Data.players[i].id?" [IGL]":"");
                     if(GUI.Button(new Rect(685+n++*114,614+team*62,110,27),name)) Select(index);
                 }
             }
@@ -292,7 +330,8 @@ namespace FpsManager
             else
             {
                 if(GUI.Button(new Rect(20,741,180,32),paused?"Resume":"Pause")) paused=!paused;
-                if(GUI.Button(new Rect(210,741,180,32),"Reset to preparation")) PlaceTeams();
+                // Reset advances the seed so repeated runs explore different shots.
+                if(GUI.Button(new Rect(210,741,180,32),"Reset / next seed")) { roundSeed++; PlaceTeams(); }
             }
             if(GUI.Button(new Rect(400,741,180,32),fogOfWar?"Fog of war: ON":"Fog of war: OFF")) fogOfWar=!fogOfWar;
             if(preparationError!=null) GUI.Label(new Rect(590,741,670,28),preparationError);

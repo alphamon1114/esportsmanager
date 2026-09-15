@@ -111,12 +111,21 @@ namespace FpsManager
             return navigation.SightClear(eye, target);
         }
 
-        // positions and facing are map-space; facing does not need to be normalised.
-        // team holds the roster team index (0 or 1) of each player.
         public void Tick(float delta, Vector2[] positions, Vector2[] facing, int[] team)
         {
+            Tick(delta, positions, facing, team, null);
+        }
+
+        // positions and facing are map-space; facing does not need to be normalised.
+        // team holds the roster team index (0 or 1) of each player.
+        // alive may be null, meaning everyone is alive. A dead player neither observes
+        // nor is observed, and is dropped from team knowledge at once rather than
+        // lingering as a remembered contact.
+        public void Tick(float delta, Vector2[] positions, Vector2[] facing, int[] team, bool[] alive)
+        {
             if (positions == null || facing == null || team == null) throw new ArgumentNullException("positions");
-            if (positions.Length != count || facing.Length != count || team.Length != count)
+            if (positions.Length != count || facing.Length != count || team.Length != count
+                || (alive != null && alive.Length != count))
                 throw new ArgumentException("Vision input length does not match the player count.");
             Array.Copy(team, lastTeam, count);
 
@@ -124,7 +133,8 @@ namespace FpsManager
                 for (int target = 0; target < count; target++)
                 {
                     int i = observer * count + target;
-                    if (observer == target || team[observer] == team[target]) { direct[i] = false; exposure[i] = 0; continue; }
+                    bool participating = (alive == null || (alive[observer] && alive[target]));
+                    if (observer == target || team[observer] == team[target] || !participating) { direct[i] = false; exposure[i] = 0; continue; }
                     float distance = Vector2.Distance(positions[observer], positions[target]);
                     float required = RecognitionTime(distance);
                     bool line = LineOfSight(positions[observer], facing[observer], positions[target]);
@@ -139,6 +149,14 @@ namespace FpsManager
                 for (int target = 0; target < count; target++)
                 {
                     int k = viewerTeam * count + target;
+                    if (alive != null && !alive[target])
+                    {
+                        knowledge[k].visible = false;
+                        knowledge[k].known = false;
+                        knowledge[k].age = 0f;
+                        knowledge[k].spotter = -1;
+                        continue;
+                    }
                     if (team[target] == viewerTeam)
                     {
                         // Own players are always known; keeps the lookup uniform for the UI.
