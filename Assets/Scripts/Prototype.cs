@@ -13,6 +13,10 @@ namespace FpsManager
         RenderTexture mapTexture, eyeTexture;
         const string AlliedTeamId = "spirit";
         int selected, ctTeam;
+        PlayerMatchState[] matchState;
+        public RoundOutcome LastRoundOutcome { get; private set; }
+        public int CompletedRounds { get; private set; }
+        public PlayerMatchState MatchState(int player) { return matchState[player]; }
         readonly List<Rect> obstacles = new List<Rect>();
         DeploymentNavigation navigation;
         VisionSystem vision;
@@ -62,6 +66,8 @@ namespace FpsManager
             if (asset == null) throw new InvalidOperationException("Resources/teams.json is missing.");
             Data = JsonUtility.FromJson<Database>(asset.text);
             if (Data.teams.Length != 2 || Data.players.Length != 10) throw new InvalidOperationException("Expected two teams and ten players.");
+            matchState=new PlayerMatchState[Data.players.Length];
+            for(int i=0;i<matchState.Length;i++) matchState[i]=new PlayerMatchState();
             BuildMap();
             navigation = new DeploymentNavigation(obstacles);
             for (int i = 0; i < Data.players.Length; i++) teamIndex[i] = Data.players[i].teamId == Data.teams[0].id ? 0 : 1;
@@ -101,7 +107,7 @@ namespace FpsManager
             }
             PlaceTeams();
         }
-        void Start() { try { Initialize(); } catch(Exception ex) { error=ex.Message; Debug.LogException(ex); } }
+        void Start() { try { Initialize(); ShuffleSpawnPlayers(); PrepareIglOrders(); } catch(Exception ex) { error=ex.Message; Debug.LogException(ex); } }
         Material Material(Color color)
         {
             var m = new Material(Shader.Find("Unlit/Color")); m.color=color; materials.Add(m); return m;
@@ -255,7 +261,11 @@ namespace FpsManager
             if(vision!=null) vision.Reset();
             if(combat!=null) combat.Reset(roundSeed);
             if(director!=null) director.Reset();
-            for(int i=0;i<alive.Length;i++) { alive[i]=true; arrived[i]=false; }
+            for(int i=0;i<alive.Length;i++) { alive[i]=true; arrived[i]=false; moving[i]=false; }
+            Array.Clear(homeAnchor,0,homeAnchor.Length);
+            Array.Clear(destinations,0,destinations.Length);
+            Array.Clear(visionPositions,0,visionPositions.Length);
+            Array.Clear(visionFacing,0,visionFacing.Length);
             int ct=0,t=0;
             for(int i=0;i<actors.Count;i++)
             {
@@ -267,6 +277,47 @@ namespace FpsManager
                 actors[i].GetComponent<Renderer>().sharedMaterial=isCt?ctMaterial:tMaterial;
             }
             Select(selected);
+        }
+        // Independent RNG stream: spawn draws never consume combat or tactic randomness.
+        void ShuffleSpawnPlayers()
+        {
+            var random=new DeterministicRandom(unchecked(roundSeed ^ (int)0x6D2B79F5));
+            for(int team=0;team<2;team++)
+            {
+                var slots=(Vector2[])(team==ctTeam?ctPositions:tPositions).Clone();
+                for(int j=slots.Length-1;j>0;j--)
+                {
+                    int k=(int)(random.NextUInt()%(uint)(j+1));
+                    Vector2 swap=slots[j]; slots[j]=slots[k]; slots[k]=swap;
+                }
+                int slot=0;
+                for(int i=0;i<actors.Count;i++) if(teamIndex[i]==team)
+                {
+                    actors[i].transform.position=World(slots[slot++]);
+                    actors[i].transform.LookAt(World(team==ctTeam?new Vector2(45,76):new Vector2(45,50)));
+                }
+            }
+            Select(selected);
+        }
+        public void PrepareNextRound()
+        {
+            if(roundMode && director.Phase==RoundPhase.Ended)
+            {
+                LastRoundOutcome=director.Outcome;
+                CompletedRounds++;
+            }
+            roundSeed=unchecked(roundSeed+1);
+            // MatchState, roster stats and prepared team configuration are not round state.
+            PlaceTeams();
+            ShuffleSpawnPlayers();
+            PrepareIglOrders();
+        }
+        public void AdvanceFrame(float delta)
+        {
+            // Preparation does not reveal contacts or resume combat at the new spawn.
+            if(!deploymentStarted||paused) return;
+            SimulateMovement(delta);
+            if(roundMode && director.Phase==RoundPhase.Ended) PrepareNextRound();
         }
         public void Select(int index)
         {
@@ -302,9 +353,44 @@ namespace FpsManager
         }
         // A real round: the assigned zone becomes the opening position, and from there the
         // round director decides where everyone goes.
+        // IGL opening orders use own roster and the round seed, never enemy information.
+        // Charisma bonuses and persistent tactical styles are not implemented yet.
+        public void PrepareIglOrders()
+        {
+            if(deploymentStarted) return;
+            for(int team=0;team<Data.teams.Length;team++)
+            {
+                var members=new List<int>();
+                for(int i=0;i<Data.players.Length;i++) if(teamIndex[i]==team) members.Add(i);
+                int captain=members.Find(i=>Data.players[i].id==Data.teams[team].iglPlayerId);
+                if(!members.Contains(captain)||Data.players[captain].id!=Data.teams[team].iglPlayerId)
+                    throw new InvalidOperationException("Team has no valid IGL: "+Data.teams[team].name);
+                var rng=new DeterministicRandom(unchecked(roundSeed ^ (team+1)*73856093));
+                bool ct=team==ctTeam;
+                int[] slots=(rng.NextUInt()%2==0)?new[]{0,0,1,1,2}:new[]{0,0,1,2,2};
+                // Mirror the two sites, so one site is not always the heavily staffed one.
+                if(rng.NextUInt()%2==0) for(int j=0;j<slots.Length;j++) if(slots[j]!=1) slots[j]=2-slots[j];
+                for(int s=0;s<slots.Length;s++)
+                {
+                    int best=-1; float score=float.MinValue;
+                    foreach(int i in members)
+                    {
+                        var player=Data.players[i];
+                        float candidate=rng.Next01()*10;
+                        if(player.weaponPosition=="awper" && slots[s]==1) candidate+=30;
+                        if(player.riflerRole=="anchor_lurker" && ct && slots[s]!=1) candidate+=25;
+                        if(player.riflerRole=="entry" && !ct && slots[s]!=1) candidate+=25;
+                        if(candidate>score) { score=candidate; best=i; }
+                    }
+                    assignments[best]=slots[s]; members.Remove(best);
+                }
+            }
+        }
+        public int AssignedZone(int player) { return assignments[player]; }
         public void BeginRound()
         {
             if(deploymentStarted) return;
+            PrepareIglOrders();
             for(int i=0;i<actors.Count;i++)
             {
                 homeAnchor[i]=(teamIndex[i]==ctTeam?ctZones:tZones)[assignments[i]];
@@ -317,7 +403,7 @@ namespace FpsManager
             // movement-test simplification, not a round rule.
             for(int i=0;i<arrived.Length;i++) arrived[i]=true;
         }
-        void Update() { if(Data!=null&&error==null) SimulateMovement(Time.deltaTime); }
+        void Update() { if(Data!=null&&error==null) AdvanceFrame(Time.deltaTime); }
         void LateUpdate() { if(eyeCamera!=null&&actors.Count>selected) Select(selected); }
         public VisionSystem Vision { get { return vision; } }
         public DeploymentNavigation Navigation { get { return navigation; } }
@@ -389,7 +475,7 @@ namespace FpsManager
         // finally decide the next objectives from what was just observed.
         void SimulateRound(float tick)
         {
-            if(director.Phase==RoundPhase.Ended) { UpdateSenses(tick); return; }
+            if(director.Phase==RoundPhase.Ended) return;
             for(int i=0;i<actors.Count;i++)
             {
                 repathDelay[i]=Mathf.Max(0f,repathDelay[i]-tick);
@@ -416,10 +502,10 @@ namespace FpsManager
                 if(!navigation.Clear(point,point)) throw new InvalidOperationException("Player intersects geometry: "+actor.name);
             }
         }
-        public void SwapPreviewSides() { if(!deploymentStarted) { ctTeam=1-ctTeam; PlaceTeams(); } }
+        public void SwapPreviewSides() { if(!deploymentStarted) { ctTeam=1-ctTeam; PlaceTeams(); ShuffleSpawnPlayers(); PrepareIglOrders(); } }
         string RoundLine()
         {
-            if(!deploymentStarted) return "PREPARATION / Assign zones before starting";
+            if(!deploymentStarted) return "PREPARATION / Round "+(CompletedRounds+1)+" / IGL orders ready"+(LastRoundOutcome!=RoundOutcome.None?" / Last: "+OutcomeText(LastRoundOutcome):"");
             if(!roundMode) return "MOVEMENT TEST / "+elapsed.ToString("F1")+"s";
             switch(director.Phase)
             {
@@ -481,17 +567,10 @@ namespace FpsManager
             scroll=GUI.BeginScrollView(new Rect(685,490,570,42),scroll,new Rect(0,0,530,player.weapons.Length*21));
             for(int i=0;i<player.weapons.Length;i++) GUI.Label(new Rect(0,i*21,520,21),player.weapons[i].weapon+"   "+new string('*',player.weapons[i].stars));
             GUI.EndScrollView();
-            bool selectedCt=player.teamId==Data.teams[ctTeam].id;
-            string[] zoneNames=selectedCt?CtZoneNames:TZoneNames;
-            if(!deploymentStarted && IsAlliedPlayer(selected))
-            {
-                GUI.Label(new Rect(685,537,570,22),"Initial zone / "+player.handle);
-                for(int z=0;z<3;z++) if(GUI.Button(new Rect(685+z*190,560,185,25),(assignments[selected]==z?"[X] ":"")+zoneNames[z])) AssignZone(selected,z);
-            }
             for(int team=0;team<2;team++)
             {
                                 int[] counts=new int[3]; for(int j=0;j<10;j++) if(Data.players[j].teamId==Data.teams[team].id) counts[assignments[j]]++;
-                int n=0; GUI.Label(new Rect(685,590+team*62,570,23),Data.teams[team].name+(team==ctTeam?" / CT":" / T")+(!deploymentStarted && Data.teams[team].id==AlliedTeamId?"   B / Mid / A: "+counts[0]+" / "+counts[1]+" / "+counts[2]:""));
+                int n=0; GUI.Label(new Rect(685,590+team*62,570,23),Data.teams[team].name+(team==ctTeam?" / CT":" / T")+(!deploymentStarted && showDebugInfo && Data.teams[team].id==AlliedTeamId?"   B / Mid / A: "+counts[0]+" / "+counts[1]+" / "+counts[2]:""));
                 for(int i=0;i<Data.players.Length;i++) if(Data.players[i].teamId==Data.teams[team].id)
                 {
                     int index=i; string name=(combat.Alive(i)?"":"x ")+Data.players[i].handle+(Data.teams[team].iglPlayerId==Data.players[i].id?" [IGL]":"");
@@ -526,7 +605,7 @@ namespace FpsManager
             {
                 if(GUI.Button(new Rect(20,741,180,32),paused?"Resume":"Pause")) paused=!paused;
                 // Reset advances the seed so repeated runs explore different shots.
-                if(GUI.Button(new Rect(210,741,180,32),"Reset / next seed")) { roundSeed++; PlaceTeams(); }
+                if(GUI.Button(new Rect(210,741,180,32),"Reset / next seed")) PrepareNextRound();
             }
             if(GUI.Button(new Rect(400,741,180,32),fogOfWar?"Fog of war: ON":"Fog of war: OFF")) fogOfWar=!fogOfWar;
             if(GUI.Button(new Rect(590,741,90,32),showDebugInfo?"Debug: ON":"Debug: OFF")) showDebugInfo=!showDebugInfo;
