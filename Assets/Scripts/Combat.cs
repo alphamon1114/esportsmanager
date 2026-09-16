@@ -71,7 +71,7 @@ namespace FpsManager
     public sealed class CombatSystem
     {
         public bool AmmoEnabled;
-        public Action<int> ShotFired, ReloadStarted;
+        public Action<int> ShotFired, ReloadStarted, ShotMissed;
         readonly int[] magazine=new int[10],reserve=new int[10];
         readonly float[] reload=new float[10];
         public int Magazine(int i) { return magazine[i]; }
@@ -240,7 +240,7 @@ namespace FpsManager
             Shots++; if(AmmoEnabled) magazine[shooter]--; if(ShotFired!=null) ShotFired(shooter);
             float error = aimOffsetDegrees + random.NextSigned() * SpreadDegrees(aimStat);
             float lateral = Mathf.Abs(Mathf.Tan(error * Mathf.Deg2Rad)) * distance;
-            if (lateral > settings.targetRadius) return;
+            if (lateral > settings.targetRadius) { if(ShotMissed!=null) ShotMissed(shooter); return; }
             Hits++;
             states[target].health -= weapon.damage;
             if (states[target].health > 0f) return;

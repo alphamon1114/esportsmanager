@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace FpsManager
 {
-    public class Prototype : MonoBehaviour
+    public partial class Prototype : MonoBehaviour
     {
         public Database Data { get; private set; }
         readonly List<GameObject> actors = new List<GameObject>();
@@ -43,6 +43,8 @@ namespace FpsManager
         bool roundMode;
         readonly Vector2[] homeAnchor = new Vector2[10];
         readonly Vector2[] destinations = new Vector2[10];
+        readonly float[] moveSpeed = new float[10];
+        readonly PeekMovement[] peeking = new PeekMovement[10];
         readonly bool[] routeValid = new bool[10];
         readonly float[] repathDelay = new float[10];
         readonly bool[] moving = new bool[10];
@@ -91,6 +93,7 @@ namespace FpsManager
             mapCamera.transform.position = new Vector3(50,120,50);
             mapCamera.transform.rotation = Quaternion.Euler(90,0,0);
             mapCamera.orthographic = true;
+            mapCamera.cullingMask=~(1<<9);
             mapCamera.orthographicSize = 53;
             eyeCamera = NewCamera("Selected player camera", eyeTexture);
             eyeCamera.fieldOfView = 85;
@@ -306,7 +309,18 @@ namespace FpsManager
         void StepRoute(int player, float tick)
         {
             Vector2 previousPosition=MapPosition(player);
-            float remaining=tick*5f*(roundMode&&autonomy!=null&&autonomy.Walking[player]?.48f:1f);
+            float speed=5f;
+            if(roundMode)
+            {
+                float desired=autonomy!=null&&autonomy.Walking[player]?2.4f:5f;
+                // Brake only at the final destination, not at every navigation corner.
+                if(routeSteps[player]==routes[player].Count-1)
+                    desired=Mathf.Min(desired,Mathf.Max(.6f,Vector2.Distance(previousPosition,routes[player][routeSteps[player]])*6f));
+                float change=tick*24f;
+                moveSpeed[player]+=Mathf.Clamp(desired-moveSpeed[player],-change,change);
+                speed=moveSpeed[player];
+            }
+            float remaining=tick*speed;
             while(remaining>0&&routeSteps[player]<routes[player].Count)
             {
                 Vector3 target=World(routes[player][routeSteps[player]]),position=actors[player].transform.position;
@@ -359,10 +373,10 @@ namespace FpsManager
         public void PlaceTeams()
         {
             deploymentStarted=false; paused=false; elapsed=0; DeploymentComplete=false; roundMode=false;
-            ClearRoutes(); preparationError=null;
-            autonomy=null;
+            ClearRoutes(); Array.Clear(moveSpeed,0,moveSpeed.Length); preparationError=null;
+            autonomy=null; SyncUtilityVisuals();
             if(vision!=null) { vision.Reset(); vision.LegacyFootsteps=true; vision.ExtraSight=null; vision.Blinded=null; }
-            if(combat!=null) { combat.AmmoEnabled=false; combat.ShotFired=null; combat.ReloadStarted=null; }
+            if(combat!=null) { combat.AmmoEnabled=false; combat.ShotFired=null; combat.ReloadStarted=null; combat.ShotMissed=null; }
             if(combat!=null) combat.Reset(roundSeed);
             if(director!=null) director.Reset();
             for(int i=0;i<alive.Length;i++) { alive[i]=true; arrived[i]=false; moving[i]=false; }
@@ -503,8 +517,10 @@ namespace FpsManager
             ClearRoutes();
             foreach(var state in matchState) state.RestockUtility();
             autonomy=new PlayerAutonomy(roundSeed,navigation);
+            for(int i=0;i<10;i++) peeking[i]=new PeekMovement(unchecked(roundSeed^(i+1)*73856093),navigation,Data.players[i].stats.movement);
             vision.LegacyFootsteps=false; vision.ExtraSight=autonomy.ClearSight; vision.Blinded=autonomy.Blinded;
             combat.AmmoEnabled=true;
+            combat.ShotMissed=i=>peeking[i].OnMiss();
             combat.ShotFired=i=>autonomy.Sounds.Emit(i,MapPosition(i),SoundKind.Gunshot);
             combat.ReloadStarted=i=>autonomy.Sounds.Emit(i,MapPosition(i),SoundKind.Reload);
             director.Begin(roundSeed,teamIndex,ctTeam);
@@ -514,7 +530,7 @@ namespace FpsManager
             for(int i=0;i<arrived.Length;i++) arrived[i]=true;
         }
         void Update() { if(Data!=null&&error==null) AdvanceFrame(Time.deltaTime); }
-        void LateUpdate() { if(eyeCamera!=null&&actors.Count>selected) Select(selected); }
+        void LateUpdate() { if(eyeCamera!=null&&actors.Count>selected) Select(selected); SyncUtilityVisuals(); }
         public VisionSystem Vision { get { return vision; } }
         public DeploymentNavigation Navigation { get { return navigation; } }
         public int AlliedTeamIndex { get { return Data.teams[0].id==AlliedTeamId?0:1; } }
@@ -597,10 +613,40 @@ namespace FpsManager
                 if(!combat.Alive(i)) { routeValid[i]=false; continue; }
                 moving[i]=false;
                 var objective=autonomy.Decide(i,director.Objective(i),MapPosition(i),Data.players[i],matchState[i],combat,vision,teamIndex[i],teamIndex[i]==ctTeam);
+                arrived[i]=true;
+                Vector2 probe=MapPosition(i)+MapFacing(i)*12;
+                bool contact=false;
+                float closest=float.MaxValue;
+                for(int enemy=0;enemy<actors.Count;enemy++)
+                {
+                    if(teamIndex[enemy]==teamIndex[i]) continue;
+                    var known=vision.Knowledge(teamIndex[i],enemy);
+                    float distance=Vector2.Distance(MapPosition(i),known.lastKnownPosition);
+                    if(!known.known||distance>=closest) continue;
+                    closest=distance; probe=known.lastKnownPosition; contact=true;
+                }
+                // Unknown approach: inspect the next bend in our own route, not enemies.
+                if(!contact&&routeSteps[i]+1<routes[i].Count)
+                    probe=routes[i][routeSteps[i]+1];
+                Vector2 peekTarget,peekWatch;
+                if(combat.Reloading(i)||autonomy.Blinded[i]||combat.Health(i)<40)
+                { var cancel=objective; cancel.valid=false; peeking[i].Step(tick,MapPosition(i),cancel,probe,contact,out peekTarget,out peekWatch); }
+                else if(peeking[i].Step(tick,MapPosition(i),objective,probe,contact,out peekTarget,out peekWatch))
+                {
+                    var before=MapPosition(i);
+                    var next=Vector2.MoveTowards(before,peekTarget,tick*3.5f);
+                    actors[i].transform.position=World(next);
+                    moving[i]=Vector2.Distance(before,next)>.001f;
+                    arrived[i]=!moving[i]&&peeking[i].ReadyToFire; // Stop and settle before shooting.
+                    autonomy.Footstep(i,next,Vector2.Distance(before,next));
+                    FaceWatch(i,peekWatch,tick);
+                    routeValid[i]=false; repathDelay[i]=0; moveSpeed[i]=0;
+                    continue;
+                }
                 // A player with something to shoot at stops and fights. Moving accuracy is
                 // not modelled yet, so standing still is the honest simplification.
                 // A player breaking off ignores that and keeps moving.
-                if(!objective.disengage&&combat.Engaging(i)) continue;
+                if(!objective.disengage&&combat.Engaging(i)) { moveSpeed[i]=0; continue; }
                 if(objective.valid) MoveTo(i,objective.destination);
                 if(routeValid[i]&&routeSteps[i]<routes[i].Count)
                 {
@@ -609,7 +655,7 @@ namespace FpsManager
                     // angle the team has a contact on, as long as it is not behind you.
                     if(!objective.disengage) AimWhileMoving(i,tick);
                 }
-                else if(objective.valid) FaceWatch(i,objective.watch,tick);
+                else { moveSpeed[i]=0; if(objective.valid) FaceWatch(i,objective.watch,tick); }
             }
             elapsed+=tick;
             UpdateSenses(tick);
@@ -665,6 +711,7 @@ namespace FpsManager
                 +"   ALIVE "+Data.teams[AlliedTeamIndex].name+" "+LivingCount(AlliedTeamIndex)+" : "+LivingCount(1-AlliedTeamIndex)+" "+Data.teams[1-AlliedTeamIndex].name
                 +"   SEED "+roundSeed+" | Rifle only, no economy or scoring across rounds");
             Rect map=new Rect(20,80,650,650); GUI.DrawTexture(map,mapTexture,ScaleMode.StretchToFill);
+            DrawUtilityMap(map);
             int viewerTeam=AlliedTeamIndex;
             for(int i=0;i<actors.Count;i++)
             {
@@ -682,6 +729,7 @@ namespace FpsManager
             }
             GUI.Label(new Rect(683,76,570,24),"SELECTED PLAYER / FIRST PERSON");
             GUI.DrawTexture(new Rect(685,104,570,321),eyeTexture,ScaleMode.StretchToFill);
+            DrawUtilityPov(new Rect(685,104,570,321));
             GUI.Label(new Rect(964,252,20,25),"+");
             var player=Data.players[selected]; var s=player.stats;
             GUI.Label(new Rect(685,433,570,25),player.handle+" / "+player.weaponPosition+" "+player.riflerRole

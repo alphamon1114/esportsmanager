@@ -118,7 +118,7 @@ namespace UnityEngine
             return new Quaternion(from.x * a1 + to.x * a2, from.y * a1 + to.y * a2, from.z * a1 + to.z * a2, from.w * a1 + to.w * a2);
         }
     }
-    public struct Color { public float r, g, b; public Color(float r, float g, float b) { this.r = r; this.g = g; this.b = b; } }
+    public struct Color { public float r, g, b, a; public Color(float r,float g,float b,float a) { this.r=r; this.g=g; this.b=b; this.a=a; } public Color(float r, float g, float b) { this.r = r; this.g = g; this.b = b; this.a=1; } }
     public struct Rect
     {
         public float x, y, width, height;
@@ -176,7 +176,7 @@ namespace UnityEngine
     }
     public class Behaviour : Component { }
     public class MonoBehaviour : Behaviour { }
-    public enum PrimitiveType { Cube, Capsule }
+    public enum PrimitiveType { Cube, Capsule, Sphere }
     public class GameObject : Object
     {
         readonly List<Component> components = new List<Component>();
@@ -187,7 +187,7 @@ namespace UnityEngine
         public static GameObject CreatePrimitive(PrimitiveType t)
         {
             var go = new GameObject(t.ToString());
-            go.AddComponent<Renderer>();
+            go.AddComponent<Renderer>(); go.AddComponent<Collider>();
             return go;
         }
         public T AddComponent<T>() where T : Component
@@ -203,8 +203,10 @@ namespace UnityEngine
     }
     public class Shader : Object { public static Shader Find(string n) { return new Shader(); } }
     public class Material : Object { public Color color; public Material(Shader s) { } }
-    public class Renderer : Component { public Material sharedMaterial; }
+    public class Renderer : Component { public bool enabled; public Material sharedMaterial; }
+    public class Collider : Component { public bool enabled; }
     public class Texture : Object { }
+    public class Texture2D : Texture { public static Texture2D whiteTexture=new Texture2D(); }
     public class RenderTexture : Texture { public RenderTexture(int w, int h, int d) { } public void Release() { } }
     public class TextAsset : Object { public string text; }
     public enum CameraClearFlags { SolidColor }
@@ -221,7 +223,7 @@ namespace UnityEngine
     public enum ScaleMode { StretchToFill }
     public static class GUI
     {
-        public static Matrix4x4 matrix;
+        public static Matrix4x4 matrix; public static Color color;
         public static void Label(Rect r, string s) { }
         public static bool Button(Rect r, string s) { return false; }
         public static void DrawTexture(Rect r, Texture t, ScaleMode m) { }

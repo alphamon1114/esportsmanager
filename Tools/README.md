@@ -48,3 +48,7 @@ The stub only covers what the project calls today. Using something new fails at
 compile time with a clear `does not contain a definition for` error; add the
 member to `HeadlessStub.cs`. Keep the additions behavioural where the checks
 depend on them (real maths) and inert where they do not (drawing).
+
+## Windows (Unity bundled Mono)
+
+Run "powershell -File Tools/RunChecks.ps1" for checks or add "-Mode Balance" for 60 paired-side trials. No extra Mono install is required when the installed Unity Editor includes MonoBleedingEdge. Use -UnityEditorPath to override the Editor folder. Balance CSV is written to the system temp folder as esportsmanager-balance-60.csv. This uses the headless stub; it does not verify rendered graphics.

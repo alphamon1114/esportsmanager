@@ -71,8 +71,12 @@ namespace FpsManager
         public readonly bool[] Blinded=new bool[10];
         readonly float[] think=new float[10],steps=new float[10],blind=new float[10],utilityCooldown=new float[10];
         readonly Vector2[] offset=new Vector2[10];
+        readonly float[] coverUntil=new float[10];
         readonly DeterministicRandom[] random=new DeterministicRandom[10];
-        struct Utility { public int owner; public Vector2 position; public bool smoke; public float fuse,life; }
+        public struct Utility { public int owner; public Vector2 origin,position; public bool smoke; public float fuse,life; }
+        public int UtilityCount { get { return utilities.Count; } }
+        public Utility UtilityAt(int index) { return utilities[index]; }
+        public float BlindRemaining(int player) { return blind[player]; }
         readonly List<Utility> utilities=new List<Utility>();
         readonly DeploymentNavigation navigation;
         public int Investigations,Patrols,SilentMoves,Throws;
@@ -99,7 +103,7 @@ namespace FpsManager
         public void Tick(float dt,Vector2[] positions,Vector2[] facing,bool[] alive)
         {
             radioAge-=dt; if(radioAge<=0) Radio=null;
-            for(int i=0;i<10;i++) { think[i]-=dt; utilityCooldown[i]-=dt; blind[i]=Mathf.Max(0,blind[i]-dt); Blinded[i]=blind[i]>0; }
+            for(int i=0;i<10;i++) { think[i]-=dt; coverUntil[i]=Mathf.Max(0,coverUntil[i]-dt); utilityCooldown[i]-=dt; blind[i]=Mathf.Max(0,blind[i]-dt); Blinded[i]=blind[i]>0; }
             for(int j=utilities.Count-1;j>=0;j--)
             {
                 var u=utilities[j]; float previous=u.fuse; u.fuse-=dt;
@@ -112,7 +116,7 @@ namespace FpsManager
                     }
                 }
                 if(u.fuse<=0) u.life-=dt;
-                if(u.life<=0) utilities.RemoveAt(j); else utilities[j]=u;
+                if(u.life<=0&&(u.smoke||u.fuse<=-.3f)) utilities.RemoveAt(j); else utilities[j]=u;
             }
         }
         public void Footstep(int i,Vector2 position,float travelled)
@@ -126,7 +130,9 @@ namespace FpsManager
             var noise=Sounds.Heard(i);
             bool urgent=order.disengage||order.task==PlayerTask.Retake||order.task==PlayerTask.Defuse||order.task==PlayerTask.RecoverBomb;
             Walking[i]=!urgent&&!combat.Engaging(i)&&noise.known&&Vector2.Distance(position,noise.position)<20;
-            if(think[i]>0) { if(!urgent&&(order.task==PlayerTask.DefendSite||order.task==PlayerTask.HoldSite)) order.destination+=offset[i]; return order; }
+            if(!urgent&&order.hasCover&&(order.task==PlayerTask.DefendSite||order.task==PlayerTask.HoldSite))
+                if(combat.Reloading(i)||Blinded[i]||combat.Health(i)<40) coverUntil[i]=.75f;
+            if(think[i]>0) { return ApplyPosition(i,order,urgent); }
             think[i]=.6f+random[i].Next01()*.7f;
             bool visible=false; Vector2 contact=position;
             for(int enemy=0;enemy<10;enemy++)
@@ -156,7 +162,7 @@ namespace FpsManager
                     if(navigation.Clear(landing,landing)&&navigation.SightClear(position,landing))
                     {
                         equipment.Remove(item); inventory.equipment=equipment.ToArray();
-                        utilities.Add(new Utility{owner=i,position=landing,smoke=smoke,fuse=1,life=smoke?9:.1f});
+                        utilities.Add(new Utility{owner=i,origin=position,position=landing,smoke=smoke,fuse=1,life=smoke?9:.1f});
                         Sounds.Emit(i,position,SoundKind.Throw); Throws++; utilityCooldown[i]=8;
                         if(team==0) { Radio=player.handle+": "+(smoke?"Smoke out!":"Flash out!"); radioAge=2.5f; }
                     }
@@ -175,11 +181,16 @@ namespace FpsManager
                     offset[i]=navigation.Clear(candidate,candidate)&&navigation.Clear(order.destination,candidate)?candidate-order.destination:Vector2.zero;
                 }
                 else offset[i]=Vector2.zero;
-                order.destination+=offset[i];
-                // Step off the angle while the gun is down or the eyes are gone, then come
-                // straight back. Same watch direction either way.
-                if(order.hasCover&&(combat.Reloading(i)||Blinded[i]||combat.Health(i)<40)) order.destination=order.cover;
+
+
+
             }
+            return ApplyPosition(i,order,urgent);
+        }
+        PlayerObjective ApplyPosition(int i,PlayerObjective order,bool urgent)
+        {
+            if(!urgent&&(order.task==PlayerTask.DefendSite||order.task==PlayerTask.HoldSite))
+                order.destination=order.hasCover&&coverUntil[i]>0?order.cover:order.destination+offset[i];
             return order;
         }
         public void BombAudio(float dt,RoundDirector director,Vector2[] positions,int[] team,int ctTeam,CombatSystem combat)

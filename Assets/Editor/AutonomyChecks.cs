@@ -58,9 +58,10 @@ public static class AutonomyChecks
         Debug.Log("AI_CASE_OK silent-walk-audible-run");
         p[1]=new Vector2(30,20);
         var combat=new CombatSystem(new CombatSettings(),new WeaponProfile{damage=0},10); combat.AmmoEnabled=true;
-        int reloads=0,shots=0; combat.ReloadStarted=i=>reloads++; combat.ShotFired=i=>shots++;
+        int reloads=0,shots=0,misses=0; combat.ShotMissed=i=>misses++; combat.ReloadStarted=i=>reloads++; combat.ShotFired=i=>shots++;
         for(int tick=0;tick<240;tick++) { vision.Tick(.05f,p,f,team,live); combat.Tick(.05f,p,f,team,arrived,aim,vision); }
         if(reloads==0||shots<40) throw new Exception("Reload does not resume fire");
+        if(misses!=combat.Shots-combat.Hits) throw new Exception("Miss events do not match shot outcomes");
         Debug.Log("AI_CASE_OK real-gunfire-reload-resume");
         foreach(bool smoke in new[]{false,true})
         {
@@ -86,6 +87,69 @@ public static class AutonomyChecks
         for(int tick=0;tick<200;tick++) director.Tick(.05f,p,team,0,anchors,aim,vision,combat);
         if(director.Objective(5).task==PlayerTask.MoveToLane||director.Objective(9).task!=PlayerTask.MoveToLane) throw new Exception("Players still wait for the whole team");
         Debug.Log("AI_CASE_OK independent-player-launch");
+        brain=new PlayerAutonomy(9,game.Navigation);
+        combat.Reset(9);
+        var coverOrder=new PlayerObjective { valid=true,task=PlayerTask.DefendSite,destination=p[0],hasCover=true,cover=p[0]+new Vector2(1,0) };
+        brain.Blinded[0]=true;
+        var noUtility=new PlayerMatchState { equipment=new string[0] };
+        for(int n=0;n<4;n++)
+        {
+            var decision=brain.Decide(0,coverOrder,p[0],game.Data.players[0],noUtility,combat,vision,0,true);
+            if(decision.destination!=coverOrder.cover) throw new Exception("Cover lost between individual decisions");
+        }
+        brain.Blinded[0]=false;
+        if(brain.Decide(0,coverOrder,p[0],game.Data.players[0],noUtility,combat,vision,0,true).destination!=coverOrder.cover)
+            throw new Exception("Cover released immediately after danger");
+        brain.Tick(.8f,p,f,live);
+        if(brain.Decide(0,coverOrder,p[0],game.Data.players[0],noUtility,combat,vision,0,true).destination==coverOrder.cover)
+            throw new Exception("Cover never released after recovery");
+        Debug.Log("AI_CASE_OK cover-persists-between-decisions-and-releases");
+        var peekNav=new DeploymentNavigation(new System.Collections.Generic.List<Rect>{new Rect(42,49,2,2)});
+        var peek=new PeekMovement(31,peekNav);
+        Vector2 peekPosition=new Vector2(40,50),peekHome=peekPosition,peekTarget,peekWatch;
+        var peekOrder=new PlayerObjective{valid=true,task=PlayerTask.PushSite,destination=new Vector2(65,50)};
+        bool exposed=false,returned=false; float farthest=0;
+        for(int frame=0;frame<200;frame++)
+        {
+            bool active=peek.Step(.05f,peekPosition,peekOrder,new Vector2(60,50),false,out peekTarget,out peekWatch);
+            if(active) peekPosition=Vector2.MoveTowards(peekPosition,peekTarget,.175f);
+            if(!peekNav.Clear(peekPosition,peekPosition)) throw new Exception("Peek crossed geometry");
+            farthest=Mathf.Max(farthest,Vector2.Distance(peekPosition,peekHome));
+            exposed|=peekNav.SightClear(peekPosition,new Vector2(60,50));
+            returned|=exposed&&Vector2.Distance(peekPosition,peekHome)<.2f;
+            if(peek.Completed>0) break;
+        }
+        if(!exposed||!returned||peek.Completed!=1||farthest<1) throw new Exception("Peek failed to expose, return and finish");
+        var urgentPeek=peekOrder; urgentPeek.task=PlayerTask.Defuse;
+        if(peek.Step(.05f,peekPosition,urgentPeek,new Vector2(60,50),true,out peekTarget,out peekWatch)) throw new Exception("Peek delayed defuse");
+        var openPeek=new PeekMovement(31,new DeploymentNavigation(new System.Collections.Generic.List<Rect>()));
+        if(openPeek.Step(.05f,peekHome,peekOrder,new Vector2(60,50),true,out peekTarget,out peekWatch)) throw new Exception("Peek danced without cover");
+        Debug.Log("AI_CASE_OK peek-exposure-return-geometry-urgent-open-ground");
+        int lowEvades=0,highEvades=0;
+        var emptyNav=new DeploymentNavigation(new System.Collections.Generic.List<Rect>());
+        for(int trial=0;trial<100;trial++)
+        {
+            foreach(int stat in new[]{0,100})
+            {
+                var mover=new PeekMovement(trial,emptyNav,stat);
+                mover.OnMiss(); Vector2 at=peekHome; bool settled=false;
+                for(int frame=0;frame<30;frame++)
+                {
+                    if(!mover.Step(.05f,at,peekOrder,new Vector2(60,50),true,out peekTarget,out peekWatch)) continue;
+                    var next=Vector2.MoveTowards(at,peekTarget,.175f);
+                    if(Vector2.Distance(at,next)<.001f&&!mover.ReadyToFire) settled=true;
+                    at=next;
+                }
+                if(mover.Evasions>0&&!settled) throw new Exception("Evasion did not settle before resuming fire");
+                if(stat==0) lowEvades+=mover.Evasions; else highEvades+=mover.Evasions;
+            }
+        }
+        if(highEvades<=lowEvades||lowEvades==0) throw new Exception("Movement skill does not change miss response decisions");
+        var trapped=new PeekMovement(4,new DeploymentNavigation(new System.Collections.Generic.List<Rect>{new Rect(39,48,2,.3f),new Rect(39,51.7f,2,.3f)}),100);
+        trapped.OnMiss();
+        for(int frame=0;frame<20;frame++)
+            if(trapped.Step(.05f,peekHome,peekOrder,new Vector2(60,50),true,out peekTarget,out peekWatch)) throw new Exception("Evasion crossed nearby walls");
+        Debug.Log("AI_CASE_OK movement-miss-response low="+lowEvades+" high="+highEvades+" blocked-space-safe");
         Debug.Log("AI_ALL_OK");
     }
 }
