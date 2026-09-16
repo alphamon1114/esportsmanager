@@ -18,6 +18,10 @@ namespace FpsManager
         public bool ReadyToFire { get { return phase!=5&&phase!=6; } }
         public PeekMovement(int seed,DeploymentNavigation navigation,int movement=50)
         { nav=navigation; rng=new DeterministicRandom(seed); skill=Mathf.Clamp01(movement/100f); }
+        public void RequestRetap()
+        {
+            pendingMiss=true; reaction=.18f-.1f*skill; missWindow=.6f;
+        }
         public void OnMiss()
         {
             if(pendingMiss||evadeCooldown>0) return;

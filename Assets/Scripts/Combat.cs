@@ -25,12 +25,16 @@ namespace FpsManager
         public float NextSigned() { return ((Next01() + Next01() + Next01()) / 3f - .5f) * 2f; }
     }
 
-    // One rifle for now. Damage is body only; there is no armour and no hit zones.
+    // Unarmoured weapon damage. Legacy damage field is the body damage.
     [Serializable]
     public class WeaponProfile
     {
         public string id = "ak_47";
         public float fireInterval = .1f;        // seconds between shots
+        public float recoilPerShot=.18f, recoilRecovery=2f, recoilDelay=.25f;
+        public float headMultiplier=4f;
+        public int magazineSize=30; public float reloadSeconds=2.2f;
+        public float HeadDamage { get { return damage*headMultiplier; } }
         public float damage = 36f;              // 3 shots to kill an unarmoured target
         // Half width of the error cone before the aim factor. A target is 0.6 units wide,
         // so the cone must be comparable to atan(0.6 / distance) for aim to matter at all:
@@ -68,9 +72,16 @@ namespace FpsManager
 
     // Minimal engagement: aim, shoot, take damage, die. Only players that have finished
     // moving engage; stopping, taking cover and repositioning belong to the next step.
+    public struct KillEvent { public int killer,victim; public string weapon; public HitRegion region; }
+    public enum HitRegion { Miss, Body, Head }
+    public enum FollowupStyle { Spray, EvadeAndTap }
     public sealed class CombatSystem
     {
         public bool AmmoEnabled;
+        public Action<KillEvent> Killed;
+        public Action<int,FollowupStyle> FollowupChosen;
+        public int SprayChoices { get; private set; }
+        public int EvadeChoices { get; private set; }
         public Action<int> ShotFired, ReloadStarted, ShotMissed;
         readonly int[] magazine=new int[10],reserve=new int[10];
         readonly float[] reload=new float[10];
@@ -78,13 +89,28 @@ namespace FpsManager
         public bool Reloading(int i) { return reload[i]>0; }
         public void RequestReload(int i)
         {
-            if(!AmmoEnabled||!Alive(i)||reload[i]>0||magazine[i]>=30||reserve[i]<=0) return;
-            reload[i]=2.2f; if(ReloadStarted!=null) ReloadStarted(i);
+            if(!AmmoEnabled||!Alive(i)||reload[i]>0||magazine[i]>=WeaponFor(i).magazineSize||reserve[i]<=0) return;
+            reload[i]=WeaponFor(i).reloadSeconds; if(ReloadStarted!=null) ReloadStarted(i);
         }
         readonly CombatSettings settings;
         readonly WeaponProfile weapon;
         readonly int count;
         readonly CombatState[] states;
+        readonly WeaponProfile[] equipped;
+        readonly DeterministicRandom[] hitRandom;
+        readonly HitRegion[] lastHit;
+        readonly float[] recoil,sinceShot,fireHold;
+        readonly int[] movementSkill,burstShots;
+        readonly bool[] choseFollowup,retap;
+        readonly DeterministicRandom[] decisionRandom;
+        public float Recoil(int i) { return recoil[i]; }
+        public void SetMovementSkill(int i,int value) { movementSkill[i]=value; }
+        public static float SprayChance(int aim,int movement) { return Mathf.Clamp(.5f+(aim-movement)/150f,.15f,.85f); }
+        public int Headshots { get; private set; }
+        public int Bodyshots { get; private set; }
+        public HitRegion LastHit(int i) { return lastHit[i]; }
+        public WeaponProfile WeaponFor(int i) { return equipped[i]??weapon; }
+        public void Equip(int i,WeaponProfile profile) { equipped[i]=profile; magazine[i]=WeaponFor(i).magazineSize; reload[i]=0; }
         readonly int[] killer;
         readonly float[] shotTime, shotOffset, shotDistance;
         DeterministicRandom random;
@@ -100,7 +126,9 @@ namespace FpsManager
             this.settings = settings ?? new CombatSettings();
             this.weapon = weapon ?? new WeaponProfile();
             count = playerCount;
-            states = new CombatState[count];
+            recoil=new float[count]; sinceShot=new float[count]; fireHold=new float[count]; movementSkill=new int[count]; burstShots=new int[count]; choseFollowup=new bool[count]; retap=new bool[count]; decisionRandom=new DeterministicRandom[count];
+            for(int i=0;i<count;i++) movementSkill[i]=50;
+            states = new CombatState[count]; equipped=new WeaponProfile[count]; hitRandom=new DeterministicRandom[count]; lastHit=new HitRegion[count];
             killer = new int[count];
             shotTime = new float[count];
             shotOffset = new float[count];
@@ -111,7 +139,7 @@ namespace FpsManager
         public void Reset(int seed)
         {
             random = new DeterministicRandom(seed);
-            Shots = Hits = Kills = 0;
+            Shots = Hits = Kills = Headshots = Bodyshots = SprayChoices = EvadeChoices = 0;
             for (int i = 0; i < count; i++)
             {
                 states[i].alive = true;
@@ -119,7 +147,9 @@ namespace FpsManager
                 states[i].target = -1;
                 states[i].reaction = 0f;
                 states[i].cooldown = 0f;
-                killer[i] = -1; magazine[i]=30; reserve[i]=90; reload[i]=0;
+                recoil[i]=fireHold[i]=0; sinceShot[i]=1; burstShots[i]=0; choseFollowup[i]=retap[i]=false; decisionRandom[i]=new DeterministicRandom(unchecked(seed^(i+1)*15485863));
+                hitRandom[i]=new DeterministicRandom(unchecked(seed^(i+1)*83492791)); lastHit[i]=HitRegion.Miss;
+                killer[i] = -1; magazine[i]=WeaponFor(i).magazineSize; reserve[i]=90; reload[i]=0;
             }
         }
 
@@ -164,12 +194,16 @@ namespace FpsManager
             for (int i = 0; i < count; i++)
             {
                 shotTime[i] = float.MaxValue;
+                sinceShot[i]+=delta; fireHold[i]=Mathf.Max(0,fireHold[i]-delta);
+                if(sinceShot[i]>WeaponFor(i).recoilDelay) recoil[i]=Mathf.Max(0,recoil[i]-WeaponFor(i).recoilRecovery*delta);
+                if(recoil[i]<=0&&sinceShot[i]>.35f) { burstShots[i]=0; choseFollowup[i]=false; }
+                if(WeaponFor(i).id=="unarmed") { states[i].target=-1; continue; }
                 if(AmmoEnabled&&states[i].alive)
                 {
                     if(reload[i]>0)
                     {
                         reload[i]-=delta;
-                        if(reload[i]<=0) { int rounds=Math.Min(30-magazine[i],reserve[i]); magazine[i]+=rounds; reserve[i]-=rounds; }
+                        if(reload[i]<=0) { int rounds=Math.Min(WeaponFor(i).magazineSize-magazine[i],reserve[i]); magazine[i]+=rounds; reserve[i]-=rounds; }
                         states[i].target=-1; continue;
                     }
                     if(magazine[i]<=0) { RequestReload(i); states[i].target=-1; continue; }
@@ -200,7 +234,7 @@ namespace FpsManager
                 float distance = toTarget.magnitude;
                 float offset = distance < .001f ? 0f : TurnTowards(ref facing[i], toTarget, settings.turnDegreesPerSecond * delta);
                 float ready = Mathf.Max(states[i].reaction, states[i].cooldown);
-                bool fires = distance >= .001f && ready < delta
+                bool fires = fireHold[i]<=0 && distance >= .001f && ready < delta
                     && Mathf.Abs(offset) <= settings.fireAlignmentDegrees
                     && !FriendlyInLine(i, chosen, positions, team, distance);
                 if (fires) { shotTime[i] = Mathf.Max(0f, ready); shotOffset[i] = offset; shotDistance[i] = distance; candidates++; }
@@ -228,8 +262,16 @@ namespace FpsManager
                 int target = states[next].target;
                 if (!states[next].alive || target < 0 || !states[target].alive) continue;
                 states[next].reaction = 0f;
-                states[next].cooldown = at + weapon.fireInterval - delta;
+                states[next].cooldown = at + WeaponFor(next).fireInterval - delta;
                 Fire(next, target, shotOffset[next], shotDistance[next], aimStat[next]);
+                if(FollowupChosen!=null&&states[target].alive&&!choseFollowup[next])
+                {
+                    choseFollowup[next]=true;
+                    bool spray=WeaponFor(next).fireInterval<.4f&&decisionRandom[next].Next01()<SprayChance(aimStat[next],movementSkill[next]);
+                    if(spray) SprayChoices++;
+                    else { EvadeChoices++; fireHold[next]=.65f; retap[next]=true; }
+                    FollowupChosen(next,spray?FollowupStyle.Spray:FollowupStyle.EvadeAndTap);
+                }
             }
         }
 
@@ -238,19 +280,39 @@ namespace FpsManager
             // The caller owns cooldown: it carries the sub-tick remainder that orders
             // shots. Overwriting it here would flatten every shooter to the same schedule.
             Shots++; if(AmmoEnabled) magazine[shooter]--; if(ShotFired!=null) ShotFired(shooter);
-            float error = aimOffsetDegrees + random.NextSigned() * SpreadDegrees(aimStat);
+            var gun=WeaponFor(shooter);
+            float aim=Mathf.Clamp01(aimStat/100f);
+            float compensation=1f-.8f*aim;
+            float kick=recoil[shooter]*compensation;
+            float spread=gun.baseSpreadDegrees*(settings.spreadFactorAtAimZero+(settings.spreadFactorAtAimHundred-settings.spreadFactorAtAimZero)*aim);
+            float error = aimOffsetDegrees + random.NextSigned() * spread + Mathf.Sin(burstShots[shooter]*1.7f)*kick*.5f;
             float lateral = Mathf.Abs(Mathf.Tan(error * Mathf.Deg2Rad)) * distance;
-            if (lateral > settings.targetRadius) { if(ShotMissed!=null) ShotMissed(shooter); return; }
-            Hits++;
-            states[target].health -= weapon.damage;
+            // Independent stream preserves shot/reaction randomness; narrow head zone is
+            // resolved from a vertical aim point and angular error, not a dodge bonus.
+            bool aimHead=hitRandom[shooter].Next01()<.1f+.25f*aim;
+            if(retap[shooter]) { aimHead=true; retap[shooter]=false; }
+            float height=(aimHead?.8f:0)+Mathf.Tan((hitRandom[shooter].NextSigned()*spread+kick)*Mathf.Deg2Rad)*distance;
+            HitRegion region=ResolveRegion(lateral,height,settings.targetRadius);
+            recoil[shooter]=Mathf.Min(3,recoil[shooter]+gun.recoilPerShot); sinceShot[shooter]=0; burstShots[shooter]++;
+            lastHit[shooter]=region;
+            if(region==HitRegion.Miss) { if(ShotMissed!=null) ShotMissed(shooter); return; }
+            Hits++; if(region==HitRegion.Head) Headshots++; else Bodyshots++;
+            states[target].health -= region==HitRegion.Head?gun.HeadDamage:gun.damage;
             if (states[target].health > 0f) return;
             states[target].health = 0f;
             states[target].alive = false;
             states[target].target = -1;
             killer[target] = shooter;
             Kills++;
+            if(Killed!=null) Killed(new KillEvent{killer=shooter,victim=target,weapon=gun.id,region=region});
         }
 
+        public static HitRegion ResolveRegion(float horizontal,float height,float bodyRadius)
+        {
+            if(Mathf.Abs(horizontal)<=.18f&&Mathf.Abs(height-.8f)<=.18f) return HitRegion.Head;
+            if(Mathf.Abs(horizontal)<=bodyRadius&&height>=-.7f&&height<=.6f) return HitRegion.Body;
+            return HitRegion.Miss;
+        }
         int NearestSeen(int observer, Vector2[] positions, int[] team, VisionSystem vision)
         {
             int best = -1; float distance = float.MaxValue;

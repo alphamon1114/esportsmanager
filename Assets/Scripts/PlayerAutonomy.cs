@@ -5,7 +5,7 @@ namespace FpsManager
 {
     public enum SoundKind { Footstep, Gunshot, Reload, Plant, Beep, Defuse, Throw }
     public struct HeardSound { public bool known; public Vector2 position; public SoundKind kind; public float age; }
-    public struct SoundPulse { public int source; public Vector2 position; public SoundKind kind; }
+    public struct SoundPulse { public bool impact; public int source; public Vector2 position; public SoundKind kind; }
     // Per-listener anonymous sound memory. True source IDs never enter HeardSound.
     // Sound is a team asset. Whatever one living player picks up, the whole side knows
     // about a moment later: that is what calling it out is. A dead player stops adding to
@@ -15,6 +15,32 @@ namespace FpsManager
         readonly List<SoundPulse> pending=new List<SoundPulse>();
         readonly List<HeardSound>[] shared={ new List<HeardSound>(), new List<HeardSound>() };
         readonly HeardSound[] heard=new HeardSound[10];
+        readonly List<HeardSound>[] footTracks={new List<HeardSound>(),new List<HeardSound>()};
+        readonly List<HeardSound>[] impacts={new List<HeardSound>(),new List<HeardSound>()};
+        public void EmitImpact(int source,Vector2 position)
+        { pending.Add(new SoundPulse{source=source,position=position,kind=SoundKind.Throw,impact=true}); }
+        static void Age(List<HeardSound> records,float dt,float lifetime)
+        {
+            for(int i=records.Count-1;i>=0;i--) { var r=records[i]; r.age+=dt; if(r.age>lifetime) records.RemoveAt(i); else records[i]=r; }
+        }
+        void FootTrack(int team,Vector2 estimate)
+        {
+            int nearest=-1; float best=float.MaxValue;
+            for(int i=0;i<footTracks[team].Count;i++)
+            {
+                var r=footTracks[team][i]; float distance=Vector2.Distance(r.position,estimate);
+                if(distance<=3+5*r.age&&distance<best) { nearest=i; best=distance; }
+            }
+            var record=new HeardSound{known=true,position=estimate,kind=SoundKind.Footstep};
+            if(nearest>=0) footTracks[team][nearest]=record; else footTracks[team].Add(record);
+        }
+        public bool AttackSignal(int team,Vector2 site,float approachRadius,float siteRadius)
+        {
+            int steps=0,landings=0;
+            foreach(var r in footTracks[team]) if(Vector2.Distance(r.position,site)<=approachRadius) steps++;
+            foreach(var r in impacts[team]) if(Vector2.Distance(r.position,site)<=siteRadius) landings++;
+            return steps>=3||landings>=2;
+        }
         public readonly int[] Emitted=new int[7];
         public HeardSound Heard(int i) { return heard[i]; }
         public int TeamCues(int team) { return shared[team].Count; }
@@ -28,7 +54,11 @@ namespace FpsManager
                     var record=shared[team][j]; record.age+=dt;
                     if(record.age>4) shared[team].RemoveAt(j); else shared[team][j]=record;
                 }
-            foreach(var pulse in pending) for(int listener=0;listener<10;listener++)
+            for(int team=0;team<2;team++) { Age(footTracks[team],dt,1.2f); Age(impacts[team],dt,3); }
+            foreach(var pulse in pending)
+            {
+            int reported=0;
+            for(int listener=0;listener<10;listener++)
             {
                 if(!alive[listener]||listener==pulse.source) continue;
                 if(pulse.source>=0&&teams[listener]==teams[pulse.source]) continue;
@@ -36,8 +66,18 @@ namespace FpsManager
                 if(Vector2.Distance(positions[listener],pulse.position)>range) continue;
                 // Coarse 4-unit acoustic region rather than a precise tracked position.
                 Vector2 estimate=new Vector2(Mathf.Floor(pulse.position.x/4)*4+2,Mathf.Floor(pulse.position.y/4)*4+2);
+                int listenerTeam=teams[listener];
+                if((reported&(1<<listenerTeam))==0)
+                {
+                    if(pulse.impact) impacts[listenerTeam].Add(new HeardSound{known=true,position=estimate});
+                    else if(pulse.kind==SoundKind.Footstep) FootTrack(listenerTeam,estimate);
+                    reported|=1<<listenerTeam;
+                }
+                // Impact information reports a landing, never the thrower's position.
+                if(pulse.impact) continue;
                 Record(teams[listener],estimate,pulse.kind);
                 if(pulse.source>=0) vision.ReportSound(teams[listener],pulse.source,listener,estimate);
+            }
             }
             pending.Clear();
             // Each living player reads the team pool and takes the cue nearest to them.
@@ -107,6 +147,7 @@ namespace FpsManager
             for(int j=utilities.Count-1;j>=0;j--)
             {
                 var u=utilities[j]; float previous=u.fuse; u.fuse-=dt;
+                if(previous>0&&u.fuse<=0) Sounds.EmitImpact(u.owner,u.position);
                 if(previous>0&&u.fuse<=0&&!u.smoke)
                 {
                     for(int i=0;i<10;i++) if(alive[i]&&Vector2.Distance(positions[i],u.position)<15&&navigation.SightClear(positions[i],u.position))
@@ -129,7 +170,7 @@ namespace FpsManager
         {
             var noise=Sounds.Heard(i);
             bool urgent=order.disengage||order.task==PlayerTask.Retake||order.task==PlayerTask.Defuse||order.task==PlayerTask.RecoverBomb;
-            Walking[i]=!urgent&&!combat.Engaging(i)&&noise.known&&Vector2.Distance(position,noise.position)<20;
+            Walking[i]=!urgent&&!combat.Engaging(i)&&((noise.known&&Vector2.Distance(position,noise.position)<20)||(order.cautious&&Vector2.Distance(position,order.destination)<20));
             if(!urgent&&order.hasCover&&(order.task==PlayerTask.DefendSite||order.task==PlayerTask.HoldSite))
                 if(combat.Reloading(i)||Blinded[i]||combat.Health(i)<40) coverUntil[i]=.75f;
             if(think[i]>0) { return ApplyPosition(i,order,urgent); }

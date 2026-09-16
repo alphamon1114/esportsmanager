@@ -14,6 +14,10 @@ public static class Harness
             ("IglOrderChecks", IglOrderChecks.Run),
             ("RoundResetChecks", RoundResetChecks.Run),
             ("AutonomyChecks", AutonomyChecks.Run),
+            ("BackupChecks", BackupChecks.Run),
+            ("HitZoneChecks", HitZoneChecks.Run),
+            ("RecoilChecks", RecoilChecks.Run),
+            ("MatchHudChecks", MatchHudChecks.Run),
         };
         int failed = 0;
         foreach (var s in suites) {

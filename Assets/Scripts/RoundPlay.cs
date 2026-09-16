@@ -59,6 +59,7 @@ namespace FpsManager
         // breaking off does not shoot while they move: firing on the move is not
         // modelled, so the retreat costs them their gun until they are set again.
         public bool disengage;
+        public bool cautious; // Approach a known friendly-loss area, not a known enemy.
     }
 
     // Round rules and the team level decisions that drive them.
@@ -76,9 +77,12 @@ namespace FpsManager
         readonly bool[] ready=new bool[10];
         readonly bool[] standing;         // alive as of the previous tick, for spotting losses
         readonly Vector2[] lossPosition;
+        readonly int[] supportSite;
+        readonly float[] supportUntil;
         readonly float[] lossClock;       // round clock when this player fell, -1 while alive
         DeterministicRandom random;
 
+        public MatchSounds SoundIntel;
         public RoundPhase Phase { get; private set; }
         public RoundOutcome Outcome { get; private set; }
         public float Clock { get; private set; }
@@ -99,6 +103,7 @@ namespace FpsManager
             this.settings = settings ?? new RoundSettings();
             this.layout = layout;
             count = playerCount;
+            supportSite=new int[count]; supportUntil=new float[count];
             objectives = new PlayerObjective[count];
             slot = new int[count];
             standing = new bool[count];
@@ -119,11 +124,12 @@ namespace FpsManager
         {
             Phase = RoundPhase.Preparation;
             Outcome = RoundOutcome.None;
+            SoundIntel=null;
             Clock = 0f; PlantProgress = 0f; DefuseProgress = 0f; BombTimer = 0f;
             PlantedSite = -1; Carrier = -1; BombDropped = false; TargetSite = 0;
             for (int i = 0; i < count; i++)
             {
-                objectives[i] = new PlayerObjective(); ready[i] = false;
+                objectives[i] = new PlayerObjective(); ready[i] = false; supportSite[i]=-1; supportUntil[i]=0;
                 standing[i] = true; lossClock[i] = -1f; lossPosition[i] = Vector2.zero;
             }
         }
@@ -160,6 +166,7 @@ namespace FpsManager
             else UpdatePlanting(delta, positions, team, tTeam, vision, combat);
             if (Phase == RoundPhase.Ended) return;
 
+            AssignBackup(positions,team,ctTeam,homeAnchor,vision,combat);
             for (int i = 0; i < count; i++)
                 objectives[i] = combat.Alive(i)
                     ? (team[i] == ctTeam
@@ -321,6 +328,73 @@ namespace FpsManager
             return objective;
         }
 
+        // A cluster of our own deaths is public team information even with no survivor.
+        bool LossRisk(int site,int teamId,int[] teams,out Vector2 point)
+        {
+            point=Vector2.zero;
+            for(int i=0;i<count;i++)
+            {
+                if(teams[i]!=teamId||lossClock[i]<0||Clock-lossClock[i]>settings.lossMemory||NearestSite(lossPosition[i])!=site) continue;
+                for(int j=i+1;j<count;j++)
+                {
+                    if(teams[j]!=teamId||lossClock[j]<0||Clock-lossClock[j]>settings.lossMemory) continue;
+                    if(Vector2.Distance(lossPosition[i],lossPosition[j])>14) continue;
+                    point=lossPosition[i]; return true; // A real traversable position, not a midpoint inside a wall.
+                }
+            }
+            return false;
+        }
+        // Count confirmed sightings or inferred pressure without inventing an enemy position.
+        int BackupThreat(int site,int viewer,int[] team,VisionSystem vision)
+        {
+            int total=0;
+            for(int i=0;i<count;i++)
+            {
+                if(team[i]==viewer) continue;
+                var info=vision.Knowledge(viewer,i);
+                if(info.known&&!info.anonymous&&info.age<=3&&Vector2.Distance(info.lastKnownPosition,layout.Sites[site])<=settings.threatRadius) total++;
+            }
+            Vector2 danger; if(LossRisk(site,viewer,team,out danger)) total=Math.Max(total,2);
+            return SoundIntel!=null&&SoundIntel.AttackSignal(viewer,layout.Sites[site],settings.threatRadius,settings.siteRadius)?Math.Max(total,2):total;
+        }
+        void AssignBackup(Vector2[] positions,int[] team,int ct,Vector2[] anchors,VisionSystem vision,CombatSystem combat)
+        {
+            for(int i=0;i<count;i++)
+            {
+                if(supportSite[i]<0) continue;
+                if(PlantedSite>=0||!combat.Alive(i)||Clock>=supportUntil[i]) supportSite[i]=-1;
+                else if(BackupThreat(supportSite[i],ct,team,vision)>=2) supportUntil[i]=Clock+4;
+            }
+            if(PlantedSite>=0) return;
+            for(int site=0;site<layout.SiteCount;site++)
+            {
+                int attackers=BackupThreat(site,ct,team,vision);
+                if(attackers<2) continue;
+                int assigned=0;
+                for(int i=0;i<count;i++) if(team[i]==ct&&combat.Alive(i)&&(supportSite[i]>=0?supportSite[i]:HomeSite(anchors[i]))==site) assigned++;
+                int needed=attackers+1-assigned;
+                while(needed-->0)
+                {
+                    int best=-1; float nearest=float.MaxValue;
+                    for(int i=0;i<count;i++)
+                    {
+                        if(team[i]!=ct||!combat.Alive(i)||supportSite[i]>=0||combat.Engaging(i)) continue;
+                        int home=HomeSite(anchors[i]); if(home==site) continue;
+                        if(home>=0)
+                        {
+                            if(BackupThreat(home,ct,team,vision)>=2) continue;
+                            int guards=0;
+                            for(int j=0;j<count;j++) if(team[j]==ct&&combat.Alive(j)&&supportSite[j]<0&&HomeSite(anchors[j])==home) guards++;
+                            if(guards<=1) continue;
+                        }
+                        float distance=Vector2.Distance(positions[i],layout.Sites[site]);
+                        if(distance<nearest) { nearest=distance; best=i; }
+                    }
+                    if(best<0) break;
+                    supportSite[best]=site; supportUntil[best]=Clock+4;
+                }
+            }
+        }
         PlayerObjective DefenderObjective(int player, Vector2[] positions, int[] team, int ctTeam, Vector2[] homeAnchor,
                                           int[] composure, VisionSystem vision, CombatSystem combat)
         {
@@ -336,7 +410,26 @@ namespace FpsManager
                 return objective;
             }
 
-            int home = HomeSite(homeAnchor[player]);
+            int home = supportSite[player]>=0?supportSite[player]:HomeSite(homeAnchor[player]);
+            if(supportSite[player]>=0)
+            {
+                Vector2 danger;
+                if(LossRisk(home,ctTeam,team,out danger))
+                {
+                    objective.task=Vector2.Distance(positions[player],danger)>settings.interactRadius?PlayerTask.Rotate:PlayerTask.DefendSite;
+                    objective.destination=danger; objective.cautious=true;
+                    objective.watch=Vector2.Distance(positions[player],danger)>1?danger-positions[player]:WatchDirection(ctTeam,home,danger,team,vision,combat,true);
+                    return objective;
+                }
+                int approach=slot[player]%layout.PeekPost[home].Length;
+                Vector2 post=layout.PeekPost[home][approach];
+                if(Vector2.Distance(positions[player],post)>settings.interactRadius)
+                {
+                    objective.task=PlayerTask.Rotate; objective.destination=post;
+                    objective.watch=WatchDirection(ctTeam,home,post,team,vision,combat,true);
+                    return objective;
+                }
+            }
             if (home < 0)
             {
                 // Not posted on a site. Rotate to wherever the team has actually seen the
@@ -384,7 +477,7 @@ namespace FpsManager
             }
             // Split the defenders of a site across its different ways in, so two people
             // are not staring down the same corridor while a third is unwatched.
-            int mouth = ApproachShare(player, home, team, ctTeam, homeAnchor, combat);
+            int mouth = supportSite[player]>=0?slot[player]%layout.PeekPost[home].Length:ApproachShare(player, home, team, ctTeam, homeAnchor, combat);
             objective.task = PlayerTask.DefendSite;
             objective.destination = layout.PeekPost[home][mouth];
             objective.cover = layout.CoverPost[home][mouth];

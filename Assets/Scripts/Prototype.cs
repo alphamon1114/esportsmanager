@@ -376,8 +376,8 @@ namespace FpsManager
             ClearRoutes(); Array.Clear(moveSpeed,0,moveSpeed.Length); preparationError=null;
             autonomy=null; SyncUtilityVisuals();
             if(vision!=null) { vision.Reset(); vision.LegacyFootsteps=true; vision.ExtraSight=null; vision.Blinded=null; }
-            if(combat!=null) { combat.AmmoEnabled=false; combat.ShotFired=null; combat.ReloadStarted=null; combat.ShotMissed=null; }
-            if(combat!=null) combat.Reset(roundSeed);
+            if(combat!=null) { combat.AmmoEnabled=false; combat.Killed=null; combat.ShotFired=null; combat.ReloadStarted=null; combat.ShotMissed=null; combat.FollowupChosen=null; }
+            if(combat!=null) { for(int i=0;i<10;i++) combat.Equip(i,null); combat.Reset(roundSeed); }
             if(director!=null) director.Reset();
             for(int i=0;i<alive.Length;i++) { alive[i]=true; arrived[i]=false; moving[i]=false; }
             Array.Clear(homeAnchor,0,homeAnchor.Length);
@@ -423,6 +423,7 @@ namespace FpsManager
             {
                 LastRoundOutcome=director.Outcome;
                 CompletedRounds++;
+                RecordRoundResult(director.Outcome);
             }
             roundSeed=unchecked(roundSeed+1);
             // MatchState, roster stats and prepared team configuration are not round state.
@@ -520,10 +521,15 @@ namespace FpsManager
             for(int i=0;i<10;i++) peeking[i]=new PeekMovement(unchecked(roundSeed^(i+1)*73856093),navigation,Data.players[i].stats.movement);
             vision.LegacyFootsteps=false; vision.ExtraSight=autonomy.ClearSight; vision.Blinded=autonomy.Blinded;
             combat.AmmoEnabled=true;
-            combat.ShotMissed=i=>peeking[i].OnMiss();
+            killFeed.Clear(); combat.Killed=RecordKill;
+            for(int i=0;i<10;i++) combat.Equip(i,WeaponCatalog.Equipped(matchState[i].equipment));
+            combat.ShotMissed=null;
+            for(int i=0;i<10;i++) combat.SetMovementSkill(i,Data.players[i].stats.movement);
+            combat.FollowupChosen=(i,style)=> { if(style==FollowupStyle.EvadeAndTap) peeking[i].RequestRetap(); };
             combat.ShotFired=i=>autonomy.Sounds.Emit(i,MapPosition(i),SoundKind.Gunshot);
             combat.ReloadStarted=i=>autonomy.Sounds.Emit(i,MapPosition(i),SoundKind.Reload);
             director.Begin(roundSeed,teamIndex,ctTeam);
+            director.SoundIntel=autonomy.Sounds;
             deploymentStarted=true; roundMode=true; paused=false; DeploymentComplete=false; preparationError=null;
             // Everyone may shoot from the first tick; the stand-still-to-engage rule is a
             // movement-test simplification, not a round rule.
@@ -706,10 +712,10 @@ namespace FpsManager
             if(error!=null) { GUI.Label(new Rect(20,20,1000,100),error); return; }
             if(Data==null) return;
             GUI.matrix=Matrix4x4.Scale(new Vector3(Screen.width/1280f,Screen.height/800f,1));
-            GUI.Label(new Rect(20,12,1000,25),"FPS MANAGER / YOUR TEAM: SPIRIT / OPPONENT: FALCONS");
+            DrawMatchScore();
             GUI.Label(new Rect(20,39,1240,25),RoundLine()
                 +"   ALIVE "+Data.teams[AlliedTeamIndex].name+" "+LivingCount(AlliedTeamIndex)+" : "+LivingCount(1-AlliedTeamIndex)+" "+Data.teams[1-AlliedTeamIndex].name
-                +"   SEED "+roundSeed+" | Rifle only, no economy or scoring across rounds");
+                +"   SEED "+roundSeed+" | YOUR TEAM: SPIRIT");
             Rect map=new Rect(20,80,650,650); GUI.DrawTexture(map,mapTexture,ScaleMode.StretchToFill);
             DrawUtilityMap(map);
             int viewerTeam=AlliedTeamIndex;
@@ -730,12 +736,15 @@ namespace FpsManager
             GUI.Label(new Rect(683,76,570,24),"SELECTED PLAYER / FIRST PERSON");
             GUI.DrawTexture(new Rect(685,104,570,321),eyeTexture,ScaleMode.StretchToFill);
             DrawUtilityPov(new Rect(685,104,570,321));
+            DrawKillFeed();
             GUI.Label(new Rect(964,252,20,25),"+");
             var player=Data.players[selected]; var s=player.stats;
             GUI.Label(new Rect(685,433,570,25),player.handle+" / "+player.weaponPosition+" "+player.riflerRole
                 +"   HP "+(combat.Alive(selected)?Mathf.RoundToInt(combat.Health(selected)).ToString():"0 (down)"));
             GUI.Label(new Rect(685,459,570,25),$"AIM {s.aim}   UTIL {s.utility}   MOVE {s.movement}   CHA {s.charisma}   COMP {s.composure}");
-            scroll=GUI.BeginScrollView(new Rect(685,490,570,42),scroll,new Rect(0,0,530,player.weapons.Length*21));
+            var held=combat.WeaponFor(selected);
+            GUI.Label(new Rect(685,486,570,20),held.id+" | Body "+held.damage+" / Head "+held.HeadDamage+" | Last hit: "+combat.LastHit(selected));
+            scroll=GUI.BeginScrollView(new Rect(685,510,570,22),scroll,new Rect(0,0,530,player.weapons.Length*21));
             for(int i=0;i<player.weapons.Length;i++) GUI.Label(new Rect(0,i*21,520,21),player.weapons[i].weapon+"   "+new string('*',player.weapons[i].stars));
             GUI.EndScrollView();
             for(int team=0;team<2;team++)
