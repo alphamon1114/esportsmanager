@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 namespace FpsManager
 {
  public sealed class PlayerResult
@@ -36,7 +36,7 @@ namespace FpsManager
    Each(e.killer,s=>{s.kills++;if(e.region==HitRegion.Head)s.headshots++;});contributed[e.killer]=true;
    for(int i=0;i<10;i++)
    {
-    if(i!=e.killer&&teams[i]==teams[e.killer]&&damage[i,e.victim]>=40){Each(i,s=>s.assists++);contributed[i]=true;}
+    if(i!=e.killer&&teams[i]==teams[e.killer]&&damage[i,e.victim]>=50){Each(i,s=>s.assists++);contributed[i]=true;}
     if(dead[i]&&teams[i]==teams[e.killer]&&killers[i]==e.victim&&clock-deathAt[i]<=5)contributed[i]=true;
    }
   }
@@ -75,7 +75,7 @@ namespace FpsManager
      for(int c=0;c<values.Length;c++)HudText(new UnityEngine.Rect(xs[c],y+8,145,28),s.rounds==0?"--":values[c],17,c==5?(s.Rating>=1?HudBlue:HudGold):HudWhite,c==5);
     }
    }
-   HudText(new UnityEngine.Rect(90,765,1400,25),"ADR = enemy HP damage / rounds   |   KAST = kill, damage assist (40+), survive, or traded within 5s",14,HudMuted);
+   HudText(new UnityEngine.Rect(90,765,1400,25),"ADR = enemy HP damage / rounds   |   KAST = kill, damage assist (50+), survive, or traded within 5s",14,HudMuted);
    HudText(new UnityEngine.Rect(90,792,1400,25),"* Prototype rating: kills, ADR, KAST and deaths. Not HLTV Rating 3.0. No flash assists yet.",14,HudMuted);
    if(HudButton(new UnityEngine.Rect(1230,832,280,46),"START NEW MAP"))StartMatch();
   }

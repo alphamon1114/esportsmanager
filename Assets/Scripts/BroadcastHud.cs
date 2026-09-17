@@ -103,9 +103,11 @@ namespace FpsManager
     string captain=Data.teams[team].iglPlayerId==Data.players[i].id?" *":"";
     HudText(new Rect(x+10,y+5,162,22),Data.players[i].handle+captain,16,alive?HudWhite:HudMuted,true);
     HudText(new Rect(x+173,y+5,48,22),alive?Mathf.RoundToInt(combat.Health(i)).ToString():"OUT",15,alive?accent:HudMuted,true);
-    HudText(new Rect(x+10,y+28,211,19),WeaponLabel(i)+"   $"+matchState[i].credits,11,HudWhite);
+    HudText(new Rect(x+10,y+25,211,18),WeaponLabel(i)+"   $"+matchState[i].credits,11,HudWhite);
     bool flash=Array.IndexOf(matchState[i].equipment,"flash")>=0,smoke=Array.IndexOf(matchState[i].equipment,"smoke")>=0;
-    HudText(new Rect(x+10,y+48,211,20),"AR "+Mathf.RoundToInt(matchState[i].armor)+(matchState[i].helmet?" H ":" ")+AmmoLabel(i)+" "+(flash?"F"+MatchEconomy.UtilityCount(matchState[i],"flash")+" ":"")+(smoke?"S"+MatchEconomy.UtilityCount(matchState[i],"smoke"):""),10,HudMuted);
+    HudText(new Rect(x+10,y+40,211,18),"AR "+Mathf.RoundToInt(matchState[i].armor)+(matchState[i].helmet?" H ":" ")+AmmoLabel(i)+" "+(flash?"F"+MatchEconomy.UtilityCount(matchState[i],"flash")+" ":"")+(smoke?"S"+MatchEconomy.UtilityCount(matchState[i],"smoke"):""),10,HudMuted);
+    var result=Statistics.Result(i);
+    HudText(new Rect(x+10,y+55,211,16),"K / D / A   "+result.kills+" / "+result.deaths+" / "+result.assists,10,alive?HudWhite:HudMuted);
     HudPanel(new Rect(x,y+69,224*Mathf.Clamp01(combat.Health(i)/100),3),alive?accent:HudMuted);
     if(HudClick(area))Select(i);
    }
