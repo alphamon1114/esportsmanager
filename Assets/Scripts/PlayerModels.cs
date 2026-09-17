@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 namespace FpsManager
 {
     // Persistent inventory. Automatic matches purchase through MatchEconomy.
     [Serializable] public class PlayerMatchState
     {
         public int credits = 800;
-        public float armor; public bool helmet;
+        public float armor; public bool helmet; public bool defuseKit;
         public string[] equipment = { "ak_47", "flash", "smoke" };
         public static readonly string[] Consumables = { "flash", "smoke" };
         // Legacy isolated-round checks reissue grenades. Automatic matches buy them. Without this they

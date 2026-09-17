@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 namespace FpsManager
 {
@@ -38,10 +38,10 @@ namespace FpsManager
    HudText(new Rect(area.x+12,area.y+9,area.width-16,28),title,15,enabled?HudWhite:HudMuted,true);
    return enabled&&HudClick(area);
   }
-  string WeaponLabel(int player) { return combat.WeaponFor(player).id.Replace('_',' ').ToUpperInvariant(); }
+  string WeaponLabel(int player) { return (HeldWeapon(player)=="knife"?"KNIFE":"")+(HeldWeapon(player)=="knife"&&AutomaticMatch?" / ":"")+(HeldWeapon(player)=="knife"&&!AutomaticMatch?"":combat.WeaponFor(player).id.Replace('_',' ').ToUpperInvariant()); }
   string AmmoLabel(int player)
   {
-   return combat.Magazine(player)+"/"+combat.WeaponFor(player).magazineSize+"   MAGS "+combat.SpareMagazines(player)+(combat.Reloading(player)?"  RELOAD":"");
+   return combat.Magazine(player)+"/"+combat.WeaponFor(player).magazineSize+"   MAGS "+combat.SpareMagazines(player)+(matchState[player].defuseKit?" KIT":"")+(AutomaticMatch&&director.Carrier==player?" C4":"")+(combat.Reloading(player)?"  RELOAD":"");
   }
   string PhaseLabel()
   {
@@ -68,7 +68,7 @@ namespace FpsManager
    HudText(new Rect(753,17,180,25),Data.teams[1-ctTeam].name,17,HudGold,true);
    HudText(new Rect(560,44,380,22),"CT     ROUND "+(Stage==MatchStage.Result||Stage==MatchStage.Finished?CompletedRounds:CompletedRounds+1)+"  /  FIRST TO 9, WIN BY 2     T",11,HudMuted);
    HudPanel(new Rect(450,82,468,36),new Color(.025f,.04f,.06f,.9f));
-   HudText(new Rect(465,89,445,28),PhaseLabel(),16,HudWhite,true);
+   HudText(new Rect(465,89,445,28),PhaseLabel(),16,HudWhite,true);DrawBombProgress();
    DrawBroadcastMap(new Rect(30,94,270,270));
    DrawTeamCards(ctTeam,30,HudBlue);DrawTeamCards(1-ctTeam,1092,HudGold);
    for(int row=0;row<killFeed.Count;row++)

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 namespace FpsManager
 {
@@ -23,7 +23,10 @@ namespace FpsManager
    int count=UtilityCount(s),smoke=UtilityCount(s,"smoke"),flash=UtilityCount(s,"flash"),cost=0;
    while(count<3){if(smoke==0){smoke++;cost+=300;}else if(flash<2){flash++;cost+=200;}else {smoke++;cost+=300;}count++;}return cost;
   }
-  public static int FullCost(PlayerMatchState s,PlayerData p,bool ct){return (HasRifle(s)?0:Price(Rifle(p,ct)))+ArmorRules.SuitPrice(s)+UtilityBudget(s);}
+  public static int CoreCost(PlayerMatchState s,PlayerData p,bool ct){return (HasRifle(s)?0:Price(Rifle(p,ct)))+ArmorRules.SuitPrice(s);}
+  public static int FullCost(PlayerMatchState s,PlayerData p,bool ct){return CoreCost(s,p,ct)+UtilityBudget(s);}
+  public static int FullBuyFunds(PlayerMatchState s,PlayerData p,bool ct){return Math.Min(4001,FullCost(s,p,ct));}
+  public static bool CanFullBuy(PlayerMatchState s,PlayerData p,bool ct){return s.credits>=FullBuyFunds(s,p,ct);}
   public static int ForceCost(PlayerMatchState s,PlayerData p,bool ct)
   {
    string gun=FavoritePistol(p,ct);return (HasRifle(s)||Own(s,gun)?0:Price(gun))+(ct?(s.armor<100?650:0):ArmorRules.SuitPrice(s))+(UtilityCount(s)>0?0:200);
@@ -32,15 +35,15 @@ namespace FpsManager
   {
    if(opening)return BuyPlan.Pistol;
    int count=0,full=0,next=0,force=0;
-   for(int i=0;i<states.Length;i++)if(teams[i]==team){count++;int cost=FullCost(states[i],players[i],ct);if(states[i].credits>=cost)full++;if(states[i].credits+2400>=cost)next++;if(states[i].credits>=ForceCost(states[i],players[i],ct))force++;}
+   for(int i=0;i<states.Length;i++)if(teams[i]==team){count++;int cost=FullBuyFunds(states[i],players[i],ct);if(CanFullBuy(states[i],players[i],ct))full++;if(states[i].credits+2400>=cost)next++;if(states[i].credits>=ForceCost(states[i],players[i],ct))force++;}
    if(count>0&&full==count)return BuyPlan.Full;
    if(enemyMapPoint||(force>=3&&next<3))return BuyPlan.Force;
    return BuyPlan.Eco;
   }
-  public static bool[] EcoBuyers(PlayerMatchState[] states,PlayerData[] players,int[] teams,int team,int round)
+  public static bool[] EcoBuyers(PlayerMatchState[] states,PlayerData[] players,int[] teams,int team,int round,bool ct=false)
   {
    var candidates=new List<int>();var chosen=new bool[states.Length];
-   for(int i=0;i<states.Length;i++)if(teams[i]==team&&!HasRifle(states[i])&&(Own(states[i],"desert_eagle")||states[i].credits>=700))candidates.Add(i);
+   for(int i=0;i<states.Length;i++)if(teams[i]==team&&!HasRifle(states[i])&&(Own(states[i],"desert_eagle")||(states[i].credits>=700&&states[i].credits-700+2400>=FullBuyFunds(states[i],players[i],ct))))candidates.Add(i);
    candidates.Sort((a,b)=>{int skill=Skill(players[b],"desert_eagle").CompareTo(Skill(players[a],"desert_eagle"));return skill!=0?skill:a.CompareTo(b);});
    int target=2+(round%2);for(int n=0;n<Math.Min(target,candidates.Count);n++)chosen[candidates[n]]=true;return chosen;
   }
@@ -57,16 +60,19 @@ namespace FpsManager
    items.RemoveAll(w=>WeaponCatalog.Find(w)!=null&&Pistol(w)==pistol);items.Add(id);s.equipment=items.ToArray();s.credits-=Price(id);
   }
   // Compatibility entry point for isolated economy callers; automatic matches plan per team.
-  public static void Buy(PlayerMatchState s,PlayerData p,bool ct){Buy(s,p,ct,s.credits>=FullCost(s,p,ct)?BuyPlan.Full:BuyPlan.Force,false);}
-  public static void Buy(PlayerMatchState s,PlayerData p,bool ct,BuyPlan plan,bool ecoDeagle)
+  public static void Buy(PlayerMatchState s,PlayerData p,bool ct){Buy(s,p,ct,CanFullBuy(s,p,ct)?BuyPlan.Full:BuyPlan.Force,false);}
+  public static void Buy(PlayerMatchState s,PlayerData p,bool ct,BuyPlan plan,bool ecoDeagle,bool buyKit=false)
   {
-   if(plan==BuyPlan.Eco){if(ecoDeagle&&!HasRifle(s))BuyGun(s,"desert_eagle");return;}
+   if(plan==BuyPlan.Force&&s.credits>4000)plan=BuyPlan.Full;
+   if(plan==BuyPlan.Eco){if(ecoDeagle&&!HasRifle(s)&&s.credits-700+2400>=FullBuyFunds(s,p,ct))BuyGun(s,"desert_eagle");return;}
    if(plan==BuyPlan.Pistol){ArmorRules.Buy(s,false);return;}
    if(plan==BuyPlan.Full)
    {
-    // A full loadout is atomic: never spend into an incomplete full buy.
-    if(s.credits<FullCost(s,p,ct))return;
-    ArmorRules.Buy(s,true);if(!HasRifle(s))BuyGun(s,Rifle(p,ct));
+    // Above 4000, secure rifle + armor first; utilities use the remaining budget.
+    if(!CanFullBuy(s,p,ct))return;
+    string rifle=Rifle(p,ct);
+    if(!HasRifle(s)&&s.credits<Price(rifle)+ArmorRules.SuitPrice(s))rifle=ct?"m4a1_s":"ak_47";
+    ArmorRules.Buy(s,true);if(!HasRifle(s))BuyGun(s,rifle);if(ct&&buyKit)DefuseKitRules.Buy(s);
     while(UtilityCount(s)<3)if(!BuyUtility(s,UtilityCount(s,"smoke")==0?"smoke":UtilityCount(s,"flash")<2?"flash":"smoke"))break;
     return;
    }

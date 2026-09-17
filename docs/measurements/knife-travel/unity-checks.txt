@@ -1,0 +1,4 @@
+TRAVEL_WEAPON_ALL_OK lobby knife, 15s gate/contact exception, visible corner aim, safe travel/draw, measured speed 2.720001 -> 3.02, no knife fire, ammo preserved, reset
+KNIFE_VISUAL_OK first person and lobby knife
+PREAIM_ALL_OK future angles, fixed world point, no-contact hold/lurk patrol, real cover, hidden timing, urgent release, height reset; natural peek ticks=1387 rounds=3
+[ExitDontLaunchBugReporter] Exiting without the bug reporter. Application will exit with return code 0

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 namespace FpsManager
 {
@@ -14,6 +14,7 @@ namespace FpsManager
   void RecordKill(KillEvent entry)
   {
    if(AutomaticMatch)Statistics.Kill(entry,director.Clock);
+   DropOnDeath(entry.victim);DropBombEquipmentOnDeath(entry.victim);
    killFeed.Add(entry); if(killFeed.Count>6) killFeed.RemoveAt(0);
   }
   void RecordRoundResult(RoundOutcome outcome)

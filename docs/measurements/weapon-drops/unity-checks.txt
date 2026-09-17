@@ -1,0 +1,2 @@
+WEAPON_DROP_ALL_OK manual/death, exact ammo, reload, empty unknown gun, exchange, single claim, safety, floor, round reset, ace support and eco reserve
+DROP_VISUAL_OK ground model, saved ammo pickup, render cleanup; natural peak drops=9 rounds=4

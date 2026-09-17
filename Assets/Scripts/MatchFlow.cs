@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 namespace FpsManager
 {
@@ -34,8 +34,8 @@ namespace FpsManager
    PlaceTeams();ShuffleSpawnPlayers();PrepareIglOrders();
    for(int i=0;i<10;i++)
    {
-    matchState[i].credits=800;matchState[i].armor=0;matchState[i].helmet=false;combat.BindProtection(i,matchState[i]);
-    matchState[i].equipment=new[]{teamIndex[i]==ctTeam?"usp_s":"glock_18"};
+    matchState[i].defuseKit=false;matchState[i].credits=800;matchState[i].armor=0;matchState[i].helmet=false;combat.BindProtection(i,matchState[i]);
+    matchState[i].equipment=new[]{teamIndex[i]==ctTeam?"usp_s":"glock_18"};combat.SetKnife(i,true);
     combat.Equip(i,WeaponCatalog.Equipped(matchState[i].equipment));
    }
    StartBuying();return true;
@@ -70,13 +70,16 @@ namespace FpsManager
   void StartBuying()
   {
    Stage=MatchStage.Buying;StageSeconds=3;purchasedPlayers=0;
+   for(int i=0;i<10;i++)if(WeaponCatalog.Equipped(matchState[i].equipment).id=="unarmed")
+   {var items=new List<string>(matchState[i].equipment);items.Add(teamIndex[i]==ctTeam?"usp_s":"glock_18");matchState[i].equipment=items.ToArray();}
    Array.Clear(ecoBuyers,0,ecoBuyers.Length);
    for(int team=0;team<2;team++)
    {
     buyPlans[team]=MatchEconomy.Choose(matchState,Data.players,teamIndex,team,team==ctTeam,CompletedRounds==0,roundWins[1-team]>=8&&roundWins[1-team]>roundWins[team]);
-    if(buyPlans[team]==BuyPlan.Eco){var picks=MatchEconomy.EcoBuyers(matchState,Data.players,teamIndex,team,CompletedRounds);for(int i=0;i<10;i++)ecoBuyers[i]|=picks[i];}
+    if(buyPlans[team]==BuyPlan.Eco){var picks=MatchEconomy.EcoBuyers(matchState,Data.players,teamIndex,team,CompletedRounds,team==ctTeam);for(int i=0;i<10;i++)ecoBuyers[i]|=picks[i];}
    }
    for(int i=0;i<10;i++)combat.Equip(i,WeaponCatalog.Equipped(matchState[i].equipment));
+   PlanAceSupport();PlanKits();
    if(TimeoutPending)ActivateTimeout();
   }
   void AdvanceMatch(float delta)
@@ -91,12 +94,13 @@ namespace FpsManager
    StageSeconds=UnityEngine.Mathf.Max(0,StageSeconds-delta);
    if(Stage==MatchStage.Buying)
    {
+    DeliverSupport(delta);
     int due=Math.Min(10,(int)((3-StageSeconds)/.3f));
     if(StageSeconds<=0)due=10;
     while(purchasedPlayers<due)
     {
      int i=purchasedPlayers++;
-     MatchEconomy.Buy(matchState[i],Data.players[i],teamIndex[i]==ctTeam,buyPlans[teamIndex[i]],ecoBuyers[i]);
+     MatchEconomy.Buy(matchState[i],Data.players[i],teamIndex[i]==ctTeam,buyPlans[teamIndex[i]],ecoBuyers[i],kitBuyers[i]);
      combat.Equip(i,WeaponCatalog.Equipped(matchState[i].equipment));
     }
    }

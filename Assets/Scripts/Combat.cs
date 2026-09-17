@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 
 namespace FpsManager
@@ -160,7 +160,7 @@ namespace FpsManager
                 recoil[i]=fireHold[i]=0; sinceShot[i]=1; burstShots[i]=0; choseFollowup[i]=retap[i]=false; decisionRandom[i]=new DeterministicRandom(unchecked(seed^(i+1)*15485863));
                 recoilRandom[i]=new DeterministicRandom(unchecked(seed^(i+1)*49979687));
                 hitRandom[i]=new DeterministicRandom(unchecked(seed^(i+1)*83492791)); lastHit[i]=HitRegion.Miss;
-                killer[i] = -1; magazine[i]=WeaponFor(i).magazineSize; spareMagazines[i]=magazine[i]>0?Math.Max(0,WeaponFor(i).reserveMagazines):0; reload[i]=0;
+                knifeOut[i]=false; killer[i] = -1; magazine[i]=WeaponFor(i).magazineSize; spareMagazines[i]=magazine[i]>0?Math.Max(0,WeaponFor(i).reserveMagazines):0; reload[i]=0;
             }
         }
 
@@ -208,7 +208,7 @@ namespace FpsManager
                 sinceShot[i]+=delta; fireHold[i]=Mathf.Max(0,fireHold[i]-delta);
                 if(sinceShot[i]>WeaponFor(i).recoilDelay) recoil[i]=Mathf.Max(0,recoil[i]-WeaponFor(i).recoilRecovery*delta);
                 if(recoil[i]<=0&&sinceShot[i]>.35f) { burstShots[i]=0; choseFollowup[i]=false; }
-                if(WeaponFor(i).id=="unarmed") { states[i].target=-1; continue; }
+                if(knifeOut[i]||WeaponFor(i).id=="unarmed") { states[i].target=-1; continue; }
                 if(AmmoEnabled&&states[i].alive)
                 {
                     if(reload[i]>0)

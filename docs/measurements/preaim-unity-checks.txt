@@ -1,0 +1,2 @@
+PREAIM_ALL_OK future angles, fixed world point, no-contact hold/lurk patrol, real cover, hidden timing, urgent release, height reset; natural peek ticks=3842 rounds=2
+[ExitDontLaunchBugReporter] Exiting without the bug reporter. Application will exit with return code 0

@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 namespace FpsManager
 {
     public partial class Prototype
@@ -51,7 +51,7 @@ namespace FpsManager
                 root.localPosition=new Vector3(0,living?-1f:-.72f,0);
                 root.localRotation=living?Quaternion.identity:Quaternion.Euler(90,0,0);
                 var animation=characterVisuals[i].GetComponent<CharacterAnimation>();
-                if(animation!=null){animation.SetState(living,combat.WeaponFor(i).id,side==0);animation.AimElevation=combat.AimElevation(i);}
+                if(animation!=null){animation.SetState(living,HeldWeapon(i),side==0);animation.AimElevation=combat.AimElevation(i);}
                 foreach(var child in root.GetComponentsInChildren<Transform>(true)) child.gameObject.layer=i==selected?12:11;
             }
 #endif

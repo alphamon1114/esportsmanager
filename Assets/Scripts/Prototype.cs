@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -334,7 +334,7 @@ namespace FpsManager
             float speed=5f;
             if(roundMode)
             {
-                float desired=autonomy!=null&&autonomy.Walking[player]?2.4f:5f;
+                float desired=autonomy!=null&&autonomy.Walking[player]?2.4f:AutomaticMatch&&combat.KnifeOut(player)?5.75f:5f;
                 // Brake only at the final destination, not at every navigation corner.
                 if(routeSteps[player]==routes[player].Count-1)
                     desired=Mathf.Min(desired,Mathf.Max(.6f,Vector2.Distance(previousPosition,routes[player][routeSteps[player]])*6f));
@@ -372,7 +372,9 @@ namespace FpsManager
                 fallback=routes[player][next];
             }
             else if(order.valid&&order.watch.sqrMagnitude>.001f) fallback=position+order.watch.normalized*12;
+            if(AutomaticMatch)fallback=navigation.VisibleAimPoint(position,ExpectedAngle(player,order,tick));
             FaceWatch(player,movementAim[player].Choose(player,position,fallback,teamIndex,vision),tick);
+            if(AutomaticMatch&&!movementAim[player].HasContact)combat.PreAimHeight(player,ElevationMap.Ground(fallback),Vector2.Distance(position,fallback),tick,aimStats[player]);
         }
         void FaceWatch(int player, Vector2 watch, float tick)
         {
@@ -383,6 +385,7 @@ namespace FpsManager
         public void PlaceTeams()
         {
             ResetElevation();
+            ClearGroundWeapons();ClearBombEquipment();
             deploymentStarted=false; paused=false; elapsed=0; DeploymentComplete=false; roundMode=false;
             ClearRoutes(); Array.Clear(moveSpeed,0,moveSpeed.Length); preparationError=null;
             autonomy=null; SyncUtilityVisuals();
@@ -534,8 +537,8 @@ namespace FpsManager
             if(!AutomaticMatch)foreach(var state in matchState) state.RestockUtility();
             autonomy=new PlayerAutonomy(roundSeed,navigation); combat.ConfigureSpam(autonomy,navigation);
             autonomy.SetUtilityContext(teamIndex,visionPositions);
-            for(int i=0;i<10;i++) movementAim[i]=new MovementAim();
-            for(int i=0;i<10;i++) peeking[i]=new PeekMovement(unchecked(roundSeed^(i+1)*73856093),navigation,Data.players[i].stats.movement);
+            for(int i=0;i<10;i++){movementAim[i]=new MovementAim();preAim[i]=new PreAimPlanner();}
+            for(int i=0;i<10;i++) peeking[i]=new PeekMovement(unchecked(roundSeed^(i+1)*73856093),navigation,Data.players[i].stats.movement,AutomaticMatch,Data.players[i].stats.composure,Data.players[i].riflerRole=="anchor_lurker");
             vision.LegacyFootsteps=false; vision.ExtraSight=autonomy.ClearSight; vision.Blinded=autonomy.Blinded;
             combat.AmmoEnabled=true;
             killFeed.Clear(); combat.Killed=RecordKill;
@@ -548,7 +551,7 @@ namespace FpsManager
             combat.ShotFired=i=>autonomy.Sounds.Emit(i,MapPosition(i),SoundKind.Gunshot);
             combat.ReloadStarted=i=>autonomy.Sounds.Emit(i,MapPosition(i),SoundKind.Reload);
             ConfigureElevation();
-            director.Begin(roundSeed,teamIndex,ctTeam);
+            director.Begin(roundSeed,teamIndex,ctTeam);ConfigureBombEquipment();
             roundScored=false;
             director.StrategyTeam=AlliedTeamIndex;director.Strategy=AutomaticMatch?Strategy:TeamStrategy.Balanced;
             director.SoundIntel=autonomy.Sounds;
@@ -559,7 +562,7 @@ namespace FpsManager
             for(int i=0;i<arrived.Length;i++) arrived[i]=true;
         }
         void Update() { if(Data!=null&&error==null) AdvanceFrame(Time.deltaTime); }
-        void LateUpdate() { if(eyeCamera!=null&&actors.Count>selected) Select(selected); SyncUtilityVisuals(); UpdateShotPresentation(); }
+        void LateUpdate() { if(eyeCamera!=null&&actors.Count>selected) Select(selected); SyncUtilityVisuals(); SyncGroundWeaponVisuals(); SyncBombEquipmentVisuals(); UpdateShotPresentation(); }
         public VisionSystem Vision { get { return vision; } }
         public DeploymentNavigation Navigation { get { return navigation; } }
         public int AlliedTeamIndex { get { return Data.teams[0].id==AlliedTeamId?0:1; } }
@@ -634,6 +637,7 @@ namespace FpsManager
         void SimulateRound(float tick)
         {
             if(director.Phase==RoundPhase.Ended) return;
+            SettleGroundWeapons(tick);TickBombEquipment(tick);
             autonomy.Tick(tick,visionPositions,visionFacing,alive);
             for(int i=0;i<actors.Count;i++)
             {
@@ -641,6 +645,9 @@ namespace FpsManager
                 if(!combat.Alive(i)) { routeValid[i]=false; SettleDeadHeight(i,tick); continue; }
                 moving[i]=false;
                 var objective=autonomy.Decide(i,director.Objective(i),MapPosition(i),Data.players[i],matchState[i],combat,vision,teamIndex[i],teamIndex[i]==ctTeam);
+                UpdateTravelWeapon(i,objective);
+                if(AlignBeforeEntry(i,objective,tick))continue;
+                if(CollectNearbyWeapon(i,objective,tick))continue;
                 if(StepElevation(i,objective,tick))continue;
                 arrived[i]=true;
                 Vector2 probe=MapPosition(i)+MapFacing(i)*12;
@@ -657,6 +664,7 @@ namespace FpsManager
                 // Unknown approach: inspect the next bend in our own route, not enemies.
                 if(!contact&&routeSteps[i]+1<routes[i].Count)
                     probe=routes[i][routeSteps[i]+1];
+                if(!contact&&AutomaticMatch)probe=ExpectedAngle(i,objective,0);
                 Vector2 peekTarget,peekWatch;
                 if(combat.Reloading(i)||autonomy.Blinded[i]||combat.Health(i)<40)
                 { var cancel=objective; cancel.valid=false; peeking[i].Step(tick,MapPosition(i),cancel,probe,contact,out peekTarget,out peekWatch); }

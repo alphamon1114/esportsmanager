@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 namespace FpsManager
 {
     public partial class Prototype
@@ -23,7 +23,7 @@ namespace FpsManager
             }
             equipmentCamera.targetTexture=eyeTexture;
             bool living=combat.Alive(selected);
-            string weapon=combat.WeaponFor(selected).id;
+            string weapon=HeldWeapon(selected);
             equipmentCamera.enabled=living&&weapon!="unarmed";
             int side=teamIndex[selected]==ctTeam?0:1;
             if(equipmentModel==null||equipmentSide!=side)

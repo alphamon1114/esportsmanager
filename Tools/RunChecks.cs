@@ -1,4 +1,4 @@
-// Headless entry point for the automated checks. See Tools/README.md.
+﻿// Headless entry point for the automated checks. See Tools/README.md.
 // Compiled together with Tools/HeadlessStub.cs and the project's own scripts;
 // it is outside Assets/ so Unity never builds it.
 using System;
@@ -17,11 +17,15 @@ public static class Harness
             ("MagazineChecks", MagazineChecks.Run),
             ("ArmorChecks", ArmorChecks.Run),
             ("EconomyChecks", EconomyChecks.Run),
+            ("WeaponDropChecks", WeaponDropChecks.Run),
+            ("BombEquipmentChecks", BombEquipmentChecks.Run),
             ("GunfireChecks", GunfireChecks.Run),
             ("MatchStatisticsChecks", MatchStatisticsChecks.Run),
             ("ElevationChecks", ElevationChecks.Run),
             ("UtilityDecisionChecks", UtilityDecisionChecks.Run),
             ("MovementAimChecks", MovementAimChecks.Run),
+            ("PreAimChecks", PreAimChecks.Run),
+            ("TravelWeaponChecks", TravelWeaponChecks.Run),
             ("BackupChecks", BackupChecks.Run),
             ("TacticalMovementChecks", TacticalMovementChecks.Run),
             ("HitZoneChecks", HitZoneChecks.Run),

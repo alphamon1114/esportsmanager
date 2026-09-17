@@ -1,0 +1,6 @@
+BOMB_EQUIPMENT_ALL_OK random T carrier, give/drop/recover, CT restriction, kit death/pickup, full-buy three kits, price, 5/10s timing, interruption and reset
+BOMB_VISUAL_OK kit ground dummy and equipment checks
+PREAIM_ALL_OK future angles, fixed world point, no-contact hold/lurk patrol, real cover, hidden timing, urgent release, height reset; natural peek ticks=1041 rounds=3
+[ExitDontLaunchBugReporter] Exiting without the bug reporter. Application will exit with return code 0
+BOMB_EQUIPMENT_ALL_OK random T carrier, give/drop/recover, CT restriction, kit death/pickup, full-buy three kits, price, 5/10s timing, interruption and reset
+BOMB_HUD_OK

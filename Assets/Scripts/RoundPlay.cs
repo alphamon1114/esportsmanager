@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 
 namespace FpsManager
@@ -18,7 +18,7 @@ namespace FpsManager
         public float roundSeconds = 115f;
         public float executeDelaySeconds = 25f;  // latest moment terrorists leave their lane
         public float plantSeconds = 3.2f;
-        public float defuseSeconds = 10f;        // no defuse kits yet
+        public float defuseSeconds = 10f;        // kits halve this duration
         public float bombSeconds = 40f;
         public float siteRadius = 12f;           // counts as being on the site
         // Attackers are counted over a wider circle than defenders: a push is spread over
@@ -129,7 +129,7 @@ namespace FpsManager
         {
             Phase = RoundPhase.Preparation;
             Outcome = RoundOutcome.None;
-            SoundIntel=null; ResetTactics();
+            SoundIntel=null; ResetTactics(); HasDefuseKit=null;BombReachable=null;Defuser=-1;lastDropper=-1;reclaimAt=0;
             Clock = 0f; PlantProgress = 0f; DefuseProgress = 0f; BombTimer = 0f;
             PlantedSite = -1; Carrier = -1; BombDropped = false; TargetSite = 0;
             for (int i = 0; i < count; i++)
@@ -244,8 +244,8 @@ namespace FpsManager
             if (!BombDropped) return;
             for (int i = 0; i < count; i++)
             {
-                if (team[i] == ctTeam || !combat.Alive(i)) continue;
-                if ((InteractionAllowed!=null&&!InteractionAllowed(i))||Vector2.Distance(positions[i], BombPosition) > settings.interactRadius) continue;
+                if (team[i] == ctTeam || !combat.Alive(i)||(i==lastDropper&&Clock<reclaimAt)||(BombReachable!=null&&!BombReachable(i,BombPosition))) continue;
+                if ((BombReachable==null&&InteractionAllowed!=null&&!InteractionAllowed(i))||Vector2.Distance(positions[i], BombPosition) > settings.interactRadius) continue;
                 Carrier = i; BombDropped = false; return;
             }
         }
@@ -283,11 +283,12 @@ namespace FpsManager
             {
                 if (team[i] != ctTeam || !combat.Alive(i) || combat.Engaging(i)) continue;
                 if ((InteractionAllowed!=null&&!InteractionAllowed(i))||Vector2.Distance(positions[i], BombPosition) > settings.interactRadius) continue;
-                defuser = i; break;
+                if(defuser<0||(HasDefuseKit!=null&&HasDefuseKit(i)&&!HasDefuseKit(defuser)))defuser=i;
             }
+            if(defuser!=Defuser){DefuseProgress=0;Defuser=defuser;}
             if (defuser < 0) { DefuseProgress = 0f; return; }
             DefuseProgress += delta;
-            if (DefuseProgress >= settings.defuseSeconds) End(RoundOutcome.BombDefused);
+            if (DefuseProgress >= DefuseDuration) End(RoundOutcome.BombDefused);
         }
 
         PlayerObjective AttackerObjective(int player, Vector2[] positions, int[] team, int ctTeam, Vector2[] homeAnchor, VisionSystem vision, CombatSystem combat)

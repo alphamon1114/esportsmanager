@@ -1,4 +1,4 @@
-#if UNITY_5_3_OR_NEWER
+﻿#if UNITY_5_3_OR_NEWER
 using UnityEngine;
 namespace FpsManager
 {
@@ -46,7 +46,7 @@ namespace FpsManager
             }
             if(animator!=null&&living)
             {
-                string pose=id=="unarmed"?"knife":IsPistol(id)?"pistol":"rifle";
+                string pose=(id=="unarmed"||id=="knife")?"knife":IsPistol(id)?"pistol":"rifle";
                 animator.Play("Upper."+pose,1,0);
             }
         }
@@ -56,6 +56,7 @@ namespace FpsManager
             switch(id)
             {
                 case "unarmed":return null;
+                case "knife":return "weapon_knife";
                 case "galil_ar":return "weapon_galil_ar";
                 case "tec_9":return "weapon_tec_9";
                 case "five_seven":return "weapon_five_seven";
