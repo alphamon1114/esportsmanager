@@ -39,7 +39,8 @@ namespace FpsManager
                 renderer.enabled=i<count; if(i>=count) continue;
                 var effect=autonomy.UtilityAt(i); bool airborne=effect.fuse>0;
                 float t=Mathf.Clamp01(1-effect.fuse);
-                obj.transform.position=World(UtilityPosition(effect),airborne?1.5f+Mathf.Sin(t*Mathf.PI)*2:1.5f);
+                float baseHeight=effect.originHeight+(effect.landingHeight-effect.originHeight)*t;
+                obj.transform.position=World(UtilityPosition(effect),baseHeight+(airborne?1.5f+Mathf.Sin(t*Mathf.PI)*2:effect.smoke?3f:1.5f));
                 obj.transform.localScale=airborne?new Vector3(.65f,.65f,.65f):effect.smoke?new Vector3(10,6,10):new Vector3(2,2,2);
                 renderer.sharedMaterial=effect.smoke?smokeVisual:flashVisual;
                 // Hidden enemy utility remains physically visible in POV, not omniscient on map.
@@ -67,7 +68,7 @@ namespace FpsManager
             for(int i=0;i<autonomy.UtilityCount;i++)
             {
                 var effect=autonomy.UtilityAt(i);
-                if(effect.smoke&&effect.fuse<=0&&effect.life>0&&Vector2.Distance(MapPosition(selected),effect.position)<5) inside=true;
+                if(effect.smoke&&effect.fuse<=0&&effect.life>0&&Vector2.Distance(MapPosition(selected),effect.position)<5&&PlayerHeight(selected)+1.65f>=effect.landingHeight&&PlayerHeight(selected)+1.65f<=effect.landingHeight+6&&(!ElevatedMatch||elevation.Sight(effect.position,effect.landingHeight+.3f,MapPosition(selected),PlayerHeight(selected)+1.65f))) inside=true;
             }
             if(inside) { GUI.color=new Color(.55f,.59f,.62f,1); GUI.DrawTexture(viewport,Texture2D.whiteTexture,ScaleMode.StretchToFill); }
             float blind=autonomy.BlindRemaining(selected);

@@ -104,7 +104,7 @@ namespace FpsManager
         }
     }
 
-    public sealed class PlayerAutonomy
+    public sealed partial class PlayerAutonomy
     {
         public readonly MatchSounds Sounds=new MatchSounds();
         public readonly bool[] Walking=new bool[10];
@@ -113,7 +113,7 @@ namespace FpsManager
         readonly Vector2[] offset=new Vector2[10];
         readonly float[] coverUntil=new float[10];
         readonly DeterministicRandom[] random=new DeterministicRandom[10];
-        public struct Utility { public int owner; public Vector2 origin,position; public bool smoke; public float fuse,life; }
+        public struct Utility { public int owner; public Vector2 origin,position; public bool smoke; public float fuse,life,originHeight,landingHeight; }
         public int UtilityCount { get { return utilities.Count; } }
         public Utility UtilityAt(int index) { return utilities[index]; }
         public float BlindRemaining(int player) { return blind[player]; }
@@ -130,6 +130,13 @@ namespace FpsManager
         {
             foreach(var u in utilities) if(u.smoke&&u.life>0&&Vector2.Distance(u.position,point)<8f) return true;
             return false;
+        }
+        public Func<int,float> ThrowerHeight;
+        public Func<int,Vector2,float> LandingHeight;
+        public Func<Vector2,float,Vector2,float,bool> HeightRay;
+        public bool ClearSight3D(Vector2 a,float ay,Vector2 b,float by)
+        {
+            foreach(var u in utilities)if(u.smoke&&u.fuse<=0&&u.life>0){var d=b-a;float t=d.sqrMagnitude<.001f?0:Mathf.Clamp01(Vector2.Dot(u.position-a,d)/d.sqrMagnitude);float y=ay+(by-ay)*t;if(Vector2.Distance(a+d*t,u.position)<5&&y>=u.landingHeight&&y<=u.landingHeight+6)return false;}return true;
         }
         public bool ClearSight(Vector2 a,Vector2 b)
         {
@@ -150,7 +157,7 @@ namespace FpsManager
                 if(previous>0&&u.fuse<=0) Sounds.EmitImpact(u.owner,u.position);
                 if(previous>0&&u.fuse<=0&&!u.smoke)
                 {
-                    for(int i=0;i<10;i++) if(alive[i]&&Vector2.Distance(positions[i],u.position)<15&&navigation.SightClear(positions[i],u.position))
+                    for(int i=0;i<10;i++) if(alive[i]&&Vector2.Distance(positions[i],u.position)<15&&(HeightRay!=null?HeightRay(positions[i],ThrowerHeight(i)+1.65f,u.position,u.landingHeight+1.5f):navigation.SightClear(positions[i],u.position)))
                     {
                         bool looking=Vector2.Dot(facing[i].normalized,(u.position-positions[i]).normalized)>.3f;
                         blind[i]=Mathf.Max(blind[i],looking?2.2f:.35f); Blinded[i]=true;
@@ -181,38 +188,12 @@ namespace FpsManager
                 var known=vision.Knowledge(team,enemy);
                 if(vision.Sees(i,enemy)) { visible=true; contact=known.lastKnownPosition; break; }
             }
-            if(combat.Magazine(i)<9&&!visible) combat.RequestReload(i);
-            if((visible||noise.known)&&utilityCooldown[i]<=0)
-            {
-                Vector2 target=visible?contact:noise.position;
-                float reach=Vector2.Distance(position,target);
-                // Smoke cuts a long angle you do not intend to fight through; up close it
-                // would blind the thrower's own push. Throwing it at anything merely heard
-                // covered the map: a third of every clear sight line ran through smoke.
-                bool smoke=order.disengage||combat.Health(i)<45||reach>20f;
-                string item=smoke?"smoke":"flash";
-                var equipment=new List<string>(inventory.equipment);
-                float distance=Vector2.Distance(position,target);
-                // Straight throws only until ballistic grenade geometry is implemented.
-                Vector2 landing=Vector2.MoveTowards(position,target,Mathf.Min(distance,14));
-                if(smoke&&SmokeNear(landing)) { }
-                else if(distance>5&&distance<22&&equipment.Contains(item)&&navigation.SightClear(position,landing))
-                {
-                    float error=(100-player.stats.utility)/100f*2;
-                    landing+=new Vector2(random[i].NextSigned(),random[i].NextSigned())*error;
-                    if(navigation.Clear(landing,landing)&&navigation.SightClear(position,landing))
-                    {
-                        equipment.Remove(item); inventory.equipment=equipment.ToArray();
-                        utilities.Add(new Utility{owner=i,origin=position,position=landing,smoke=smoke,fuse=1,life=smoke?9:.1f});
-                        Sounds.Emit(i,position,SoundKind.Throw); Throws++; utilityCooldown[i]=8;
-                        if(team==0) { Radio=player.handle+": "+(smoke?"Smoke out!":"Flash out!"); radioAge=2.5f; }
-                    }
-                }
-            }
+            bool nearbyThreat=visible||(noise.known&&noise.age<2&&Vector2.Distance(position,noise.position)<20);
+            if(combat.ShouldReload(i,nearbyThreat)) combat.RequestReload(i);
+            PlanUtility(i,order,position,player,inventory,combat,vision,team,isCt);
             // Hold the angle. There used to be a random 2.5 unit wander here every second;
-            // it meant a guard was moving most of the time, and a moving player faces the
-            // way they are walking, so they were almost never aimed at the way in. Forty
-            // per cent of defender deaths came from outside their own field of view.
+            // it kept guards away from their holding position. Navigation and aim are
+            // now independent, but guards still need a reason to leave their cover.
             if(!urgent&&(order.task==PlayerTask.DefendSite||order.task==PlayerTask.HoldSite))
             {
                 if(noise.known&&Vector2.Distance(order.destination,noise.position)<22)

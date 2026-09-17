@@ -65,10 +65,13 @@ public static class AutonomyChecks
         Debug.Log("AI_CASE_OK real-gunfire-reload-resume");
         foreach(bool smoke in new[]{false,true})
         {
-            brain=new PlayerAutonomy(2,game.Navigation);
+            var utilityNav=new DeploymentNavigation(new System.Collections.Generic.List<Rect>());
+            vision=new VisionSystem(utilityNav,new VisionSettings(),10);
+            for(int tick=0;tick<10;tick++) vision.Tick(.05f,p,f,team,live);
+            brain=new PlayerAutonomy(2,utilityNav);brain.SetUtilityContext(team,p);
             var inventory=new PlayerMatchState{equipment=new[]{smoke?"smoke":"flash"}};
             var player=game.Data.players[0]; int utility=player.stats.utility; player.stats.utility=100;
-            var order=new PlayerObjective{valid=true,task=PlayerTask.DefendSite,destination=p[0],disengage=smoke};
+            var order=new PlayerObjective{valid=true,task=smoke?PlayerTask.DefendSite:PlayerTask.PushSite,destination=p[1],disengage=smoke};
             brain.Decide(0,order,p[0],player,inventory,combat,vision,0,true); player.stats.utility=utility;
             if(brain.Throws!=1||inventory.equipment.Length!=0) throw new Exception("Utility not consumed: "+smoke);
             brain.Tick(1.1f,p,f,live);

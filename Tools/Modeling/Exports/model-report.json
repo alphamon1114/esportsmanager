@@ -1,0 +1,32 @@
+{
+  "galil_ar": {
+    "triangles": 1132,
+    "length_m": 1.002,
+    "note": ""
+  },
+  "tec_9": {
+    "triangles": 848,
+    "length_m": 0.335,
+    "note": ""
+  },
+  "five_seven": {
+    "triangles": 744,
+    "length_m": 0.225,
+    "note": ""
+  },
+  "dual_berettas": {
+    "triangles": 852,
+    "length_m": 0.239,
+    "note": "Dual Berettas mesh is one pistol; runtime equips one in each hand."
+  },
+  "awp": {
+    "triangles": 1120,
+    "length_m": 1.169,
+    "note": ""
+  },
+  "famas": {
+    "triangles": 1100,
+    "length_m": 0.778,
+    "note": ""
+  }
+}

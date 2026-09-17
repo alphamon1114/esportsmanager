@@ -80,11 +80,11 @@ public static class BackupChecks
   var fire=typeof(CombatSystem).GetMethod("Fire",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance);
   fire.Invoke(combat,new object[]{5,0,0f,10f,100});
   director.Tick(.05f,positions,teams,0,anchors,composure,vision,combat);
-  if(director.Objective(2).cautious) throw new Exception("One death triggered two-death risk");
+  if(!director.Objective(2).cautious) throw new Exception("Single friendly death did not trigger investigation");
   fire.Invoke(combat,new object[]{5,1,0f,10f,100});
   director.Tick(.05f,positions,teams,0,anchors,composure,vision,combat);
   var backup=director.Objective(2);
-  if(!backup.cautious||backup.task!=PlayerTask.Rotate||Vector2.Distance(backup.destination,positions[0])>1||vision.KnownCount(0)!=0) throw new Exception("Friendly-loss cluster did not dispatch cautious support without enemy info");
+  if(!backup.cautious||backup.task!=PlayerTask.Rotate||Vector2.Distance(backup.destination,positions[1])>1||vision.KnownCount(0)!=0) throw new Exception("Friendly-loss cluster did not dispatch cautious support without enemy info");
   if(director.Objective(4).cautious) throw new Exception("Loss risk abandoned last quiet-site guard");
   var brain=new PlayerAutonomy(3,nav);
   var inventory=new PlayerMatchState{equipment=new string[0]};
@@ -95,11 +95,11 @@ public static class BackupChecks
   if(brain.Sounds.Emitted[(int)SoundKind.Footstep]!=0) throw new Exception("Cautious approach made running footsteps");
   brain.Decide(2,backup,backup.destination+new Vector2(30,0),player,inventory,combat,vision,0,true);
   if(brain.Walking[2]) throw new Exception("Distant support walked the whole map");
-  for(int tick=0;tick<340;tick++) director.Tick(.05f,positions,teams,0,anchors,composure,vision,combat);
+  for(int tick=0;tick<800;tick++) director.Tick(.05f,positions,teams,0,anchors,composure,vision,combat);
   if(director.Objective(2).cautious) throw new Exception("Loss risk never expired");
   director.Begin(2,teams,0); combat.Reset(2);
   director.Tick(.05f,positions,teams,0,anchors,composure,vision,combat);
   if(director.Objective(2).cautious) throw new Exception("Loss risk survived new round");
-  Debug.Log("BACKUP_LOSS_OK no-vision, two-deaths, mid-area, quiet-guard, silent-near-approach, expiry, reset");  Debug.Log("BACKUP_ALL_OK preplant, nearest, quiet-site-guard, arrival, expiry, no-hidden-or-sound-headcount");
+  Debug.Log("BACKUP_LOSS_OK no-vision, single-and-two-deaths, mid-area, quiet-guard, silent-near-approach, expiry, reset");  Debug.Log("BACKUP_ALL_OK preplant, nearest, quiet-site-guard, arrival, expiry, no-hidden-or-sound-headcount");
  }
 }

@@ -5,8 +5,9 @@ using UnityEngine;
 namespace FpsManager
 {
     // One-unit navigation grid; obstacles include clearance for the capsule radius.
-    public sealed class DeploymentNavigation
+    public sealed partial class DeploymentNavigation
     {
+        public Func<Vector2,Vector2,bool> MovementFilter;
         readonly List<Rect> obstacles = new List<Rect>();
         readonly List<Rect> sightBlockers = new List<Rect>();
         readonly bool[] open = new bool[10000];
@@ -23,7 +24,7 @@ namespace FpsManager
         public bool Clear(Vector2 a, Vector2 b)
         {
             if(a.x<.7f||a.y<.7f||a.x>99.3f||a.y>99.3f||b.x<.7f||b.y<.7f||b.x>99.3f||b.y>99.3f) return false;
-            return !Blocked(obstacles,a,b);
+            return !Blocked(obstacles,a,b)&&(MovementFilter==null||MovementFilter(a,b));
         }
         // Line of sight uses the raw geometry: movement clearance would wrongly cut
         // sight lines that run close along a wall face. Every Wall and Cover box blocks
@@ -55,7 +56,7 @@ namespace FpsManager
         int Nearest(Vector2 point, bool visible)
         {
             int best=-1; float distance=float.MaxValue;
-            for(int i=0;i<open.Length;i++) if(open[i])
+            for(int i=0;i<open.Length;i++) if(open[i]&&(MovementFilter==null||MovementFilter(Point(i),Point(i))))
             {
                 float candidate=(Point(i)-point).sqrMagnitude;
                 if(candidate<distance&&(!visible||Clear(point,Point(i)))) { distance=candidate; best=i; }

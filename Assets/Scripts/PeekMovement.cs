@@ -33,7 +33,7 @@ namespace FpsManager
         {
             target=position; watch=probe-position; cooldown-=dt; evadeCooldown-=dt;
             missWindow-=dt; reaction-=dt; if(missWindow<=0) pendingMiss=false;
-            bool allowed=order.valid&&!order.disengage&&(order.task==PlayerTask.MoveToLane||order.task==PlayerTask.PushSite||order.task==PlayerTask.DefendSite||order.task==PlayerTask.HoldSite);
+            bool allowed=order.valid&&!order.disengage&&(order.task==PlayerTask.Lurk||order.task==PlayerTask.Patrol||order.task==PlayerTask.MoveToLane||order.task==PlayerTask.PushSite||order.task==PlayerTask.DefendSite||order.task==PlayerTask.HoldSite);
             if(!allowed|| (Active&&Vector2.Distance(goal,order.destination)>5)) { phase=0; pendingMiss=false; cooldown=1; return false; }
             if(pendingMiss&&reaction<=0&&contact)
             {

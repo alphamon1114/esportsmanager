@@ -14,10 +14,23 @@ public static class Harness
             ("IglOrderChecks", IglOrderChecks.Run),
             ("RoundResetChecks", RoundResetChecks.Run),
             ("AutonomyChecks", AutonomyChecks.Run),
+            ("MagazineChecks", MagazineChecks.Run),
+            ("ArmorChecks", ArmorChecks.Run),
+            ("EconomyChecks", EconomyChecks.Run),
+            ("GunfireChecks", GunfireChecks.Run),
+            ("MatchStatisticsChecks", MatchStatisticsChecks.Run),
+            ("ElevationChecks", ElevationChecks.Run),
+            ("UtilityDecisionChecks", UtilityDecisionChecks.Run),
+            ("MovementAimChecks", MovementAimChecks.Run),
             ("BackupChecks", BackupChecks.Run),
+            ("TacticalMovementChecks", TacticalMovementChecks.Run),
             ("HitZoneChecks", HitZoneChecks.Run),
             ("RecoilChecks", RecoilChecks.Run),
+            ("SustainedFireChecks", SustainedFireChecks.Run),
             ("MatchHudChecks", MatchHudChecks.Run),
+            ("MatchFlowChecks", MatchFlowChecks.Run),
+            ("SprayPatternChecks", SprayPatternChecks.Run),
+            ("SuppressionChecks", SuppressionChecks.Run),
         };
         int failed = 0;
         foreach (var s in suites) {

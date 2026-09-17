@@ -13,6 +13,7 @@ namespace FpsManager
   public KillEvent KillFeedAt(int index) { return killFeed[index]; }
   void RecordKill(KillEvent entry)
   {
+   if(AutomaticMatch)Statistics.Kill(entry,director.Clock);
    killFeed.Add(entry); if(killFeed.Count>6) killFeed.RemoveAt(0);
   }
   void RecordRoundResult(RoundOutcome outcome)

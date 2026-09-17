@@ -1,0 +1,4 @@
+ELEVATION_ALL_OK floors, cover, mid ramp, observer map, aim skill, blocked shots, AI stairs/jump/return, spawn reset
+ELEVATION_VISUAL_OK building, ramps, balcony POV; natural AI peak=3 elevated ticks=1320 completed rounds=3
+HUD_CAPTURE spectator-map.png 1600x919
+ELEVATION_HUD_OK

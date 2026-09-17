@@ -1,13 +1,14 @@
 using System;
 namespace FpsManager
 {
-    // Persistent match inventory. Purchasing and weapon selection are not wired yet.
+    // Persistent inventory. Automatic matches purchase through MatchEconomy.
     [Serializable] public class PlayerMatchState
     {
         public int credits = 800;
+        public float armor; public bool helmet;
         public string[] equipment = { "ak_47", "flash", "smoke" };
         public static readonly string[] Consumables = { "flash", "smoke" };
-        // Grenades are handed out again at the start of every round. Without this they
+        // Legacy isolated-round checks reissue grenades. Automatic matches buy them. Without this they
         // are only ever spent: there is no economy to rebuy from yet, so after a handful
         // of rounds nobody has utility left and the throws simply stop happening.
         // Weapons and credits are match state and are left alone.

@@ -56,6 +56,7 @@ namespace FpsManager
         public bool LegacyFootsteps=true;
         public bool[] Blinded;
         public Func<Vector2,Vector2,bool> ExtraSight;
+        public Func<int,int,Vector2,Vector2,bool> PairGeometry;
         public void ReportSound(int viewerTeam,int target,int listener,Vector2 estimate)
         {
             int k=viewerTeam*count+target;
@@ -139,7 +140,8 @@ namespace FpsManager
         }
 
         // Geometry test only: range, cone and obstruction. No exposure time.
-        public bool LineOfSight(Vector2 eye, Vector2 facing, Vector2 target)
+        public bool LineOfSight(Vector2 eye, Vector2 facing, Vector2 target){return Sight(eye,facing,target,-1,-1);}
+        bool Sight(Vector2 eye,Vector2 facing,Vector2 target,int observer,int targetIndex)
         {
             Vector2 delta = target - eye;
             float distance = delta.magnitude;
@@ -149,7 +151,7 @@ namespace FpsManager
                 if (facing.sqrMagnitude < .000001f) return false;
                 if (Vector2.Dot(delta / Mathf.Max(distance, .000001f), facing.normalized) < cosHalfAngle) return false;
             }
-            return navigation.SightClear(eye, target) && (ExtraSight==null || ExtraSight(eye,target));
+            return (PairGeometry!=null&&observer>=0?PairGeometry(observer,targetIndex,eye,target):navigation.SightClear(eye, target)) && (ExtraSight==null || ExtraSight(eye,target));
         }
 
         public void Tick(float delta, Vector2[] positions, Vector2[] facing, int[] team)
@@ -178,7 +180,7 @@ namespace FpsManager
                     if (observer == target || team[observer] == team[target] || !participating) { direct[i] = false; exposure[i] = 0; continue; }
                     float distance = Vector2.Distance(positions[observer], positions[target]);
                     float required = RecognitionTime(distance);
-                    bool line = (Blinded==null || !Blinded[observer]) && LineOfSight(positions[observer], facing[observer], positions[target]);
+                    bool line = (Blinded==null || !Blinded[observer]) && Sight(positions[observer], facing[observer], positions[target],observer,target);
                     if (line) exposure[i] = Mathf.Min(exposure[i] + delta, required + 1f);
                     else exposure[i] = Mathf.Max(0f, exposure[i] - delta * settings.exposureDecay);
                     // Exposure only gates how long a visible target takes to register.

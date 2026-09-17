@@ -8,7 +8,7 @@ namespace FpsManager
     public enum RoundOutcome { None, TerroristsEliminated, CounterTerroristsEliminated, BombExploded, BombDefused, TimeExpired }
 
     // What a player is doing right now. Derived state, recomputed every tick.
-    public enum PlayerTask { Idle, MoveToLane, PushSite, PlantBomb, RecoverBomb, HoldSite, DefendSite, Rotate, FallBack, Regroup, Retake, Defuse, Trade }
+    public enum PlayerTask { Idle, MoveToLane, PushSite, PlantBomb, RecoverBomb, HoldSite, DefendSite, Rotate, FallBack, Regroup, Retake, Defuse, Trade, Lurk, Patrol }
 
     // Test starting values, not balanced numbers. Round and bomb times follow the real
     // game; the radii are sized for this 100 x 100 map.
@@ -29,12 +29,15 @@ namespace FpsManager
         public float clearRadius = 20f;          // a visible enemy this close to the site stops a plant
         public float holdRadius = 6f;            // spread of the holding positions around a site
         public float lossMemory = 12f;           // how long a team mate falling here still counts
+        public float dangerMemory = 30f;          // death location persists long enough for investigation
         public float tradeWindow = 6f;           // how long a team mate falling is still worth trading for
     }
 
     // Map specific anchor points. Built by the map code, not hard coded here.
     public sealed class MapLayout
     {
+        public Vector2[][][] FlankRoutes; // per target site, alternate-side and mid routes
+        public Vector2 AttackerSpawn;
         public Vector2[] Sites;        // plant spots
         public string[] SiteNames;
         public Vector2[] Staging;      // per site: where defenders fall back to and retake from
@@ -67,7 +70,7 @@ namespace FpsManager
     // Every decision here uses only what a team has actually seen, through VisionSystem,
     // never the true positions of the other side. The one exception is a team's own
     // players, which it always knows.
-    public sealed class RoundDirector
+    public sealed partial class RoundDirector
     {
         readonly RoundSettings settings;
         readonly MapLayout layout;
@@ -83,12 +86,14 @@ namespace FpsManager
         DeterministicRandom random;
 
         public MatchSounds SoundIntel;
+        public int StrategyTeam=-1; public TeamStrategy Strategy;
         public RoundPhase Phase { get; private set; }
         public RoundOutcome Outcome { get; private set; }
         public float Clock { get; private set; }
         public int TargetSite { get; private set; }
         public int PlantedSite { get; private set; }
         public int Carrier { get; private set; }
+        public Func<int,bool> InteractionAllowed;
         public bool BombDropped { get; private set; }
         public Vector2 BombPosition { get; private set; }
         public float PlantProgress { get; private set; }
@@ -124,7 +129,7 @@ namespace FpsManager
         {
             Phase = RoundPhase.Preparation;
             Outcome = RoundOutcome.None;
-            SoundIntel=null;
+            SoundIntel=null; ResetTactics();
             Clock = 0f; PlantProgress = 0f; DefuseProgress = 0f; BombTimer = 0f;
             PlantedSite = -1; Carrier = -1; BombDropped = false; TargetSite = 0;
             for (int i = 0; i < count; i++)
@@ -157,7 +162,7 @@ namespace FpsManager
             int tTeam = 1 - ctTeam;
 
             for(int i=0;i<count;i++) if(team[i]!=ctTeam && combat.Alive(i))
-                ready[i] |= Vector2.Distance(positions[i],homeAnchor[i]) <= settings.interactRadius*2 || Clock >= 9+slot[i]*2;
+                ready[i] |= Vector2.Distance(positions[i],homeAnchor[i]) <= settings.interactRadius*2 || Clock >= (9+slot[i]*2)*(team[i]==StrategyTeam?(Strategy==TeamStrategy.Aggressive?.7f:Strategy==TeamStrategy.Defensive?1.25f:1):1);
             TrackLosses(positions, combat);
             UpdateBombCarrier(positions, team, ctTeam, combat);
             if (Phase == RoundPhase.Setup && ReadyToExecute(positions, team, ctTeam, homeAnchor, combat))
@@ -208,6 +213,9 @@ namespace FpsManager
                 standing[i] = false;
                 lossPosition[i] = positions[i];
                 lossClock[i] = Clock;
+                // A new casualty reopens a previously searched neighbourhood.
+                for(int scout=0;scout<count;scout++)if(Vector2.Distance(patrolCentre[scout],positions[i])<=14)
+                {patrolStep[scout]=0;patrolPause[scout]=0;}
             }
         }
 
@@ -237,7 +245,7 @@ namespace FpsManager
             for (int i = 0; i < count; i++)
             {
                 if (team[i] == ctTeam || !combat.Alive(i)) continue;
-                if (Vector2.Distance(positions[i], BombPosition) > settings.interactRadius) continue;
+                if ((InteractionAllowed!=null&&!InteractionAllowed(i))||Vector2.Distance(positions[i], BombPosition) > settings.interactRadius) continue;
                 Carrier = i; BombDropped = false; return;
             }
         }
@@ -252,7 +260,7 @@ namespace FpsManager
         void UpdatePlanting(float delta, Vector2[] positions, int[] team, int tTeam, VisionSystem vision, CombatSystem combat)
         {
             if (Carrier < 0 || Phase != RoundPhase.Execute) { PlantProgress = 0f; return; }
-            bool inPlace = Vector2.Distance(positions[Carrier], layout.Sites[TargetSite]) <= settings.interactRadius;
+            bool inPlace = (InteractionAllowed==null||InteractionAllowed(Carrier))&&Vector2.Distance(positions[Carrier], layout.Sites[TargetSite]) <= settings.interactRadius;
             // Planting is interrupted by having something to shoot at, or by the team
             // currently seeing a defender near the site. Both are observed facts.
             bool clear = !combat.Engaging(Carrier) && VisibleEnemiesNear(tTeam, TargetSite, team, vision, combat) == 0;
@@ -274,7 +282,7 @@ namespace FpsManager
             for (int i = 0; i < count; i++)
             {
                 if (team[i] != ctTeam || !combat.Alive(i) || combat.Engaging(i)) continue;
-                if (Vector2.Distance(positions[i], BombPosition) > settings.interactRadius) continue;
+                if ((InteractionAllowed!=null&&!InteractionAllowed(i))||Vector2.Distance(positions[i], BombPosition) > settings.interactRadius) continue;
                 defuser = i; break;
             }
             if (defuser < 0) { DefuseProgress = 0f; return; }
@@ -295,6 +303,8 @@ namespace FpsManager
                 objective.watch = layout.Sites[site] - BombPosition;
                 return objective;
             }
+            if (LurkObjective(player,positions,team,ctTeam,combat,out objective)) return objective;
+            objective.valid=true;
             if (!ready[player] && Phase != RoundPhase.PostPlant)
             {
                 objective.task = PlayerTask.MoveToLane;
@@ -328,21 +338,16 @@ namespace FpsManager
             return objective;
         }
 
-        // A cluster of our own deaths is public team information even with no survivor.
+        // Team death locations remain useful without a surviving witness.
         bool LossRisk(int site,int teamId,int[] teams,out Vector2 point)
         {
-            point=Vector2.zero;
+            point=Vector2.zero; float newest=-1;
             for(int i=0;i<count;i++)
             {
-                if(teams[i]!=teamId||lossClock[i]<0||Clock-lossClock[i]>settings.lossMemory||NearestSite(lossPosition[i])!=site) continue;
-                for(int j=i+1;j<count;j++)
-                {
-                    if(teams[j]!=teamId||lossClock[j]<0||Clock-lossClock[j]>settings.lossMemory) continue;
-                    if(Vector2.Distance(lossPosition[i],lossPosition[j])>14) continue;
-                    point=lossPosition[i]; return true; // A real traversable position, not a midpoint inside a wall.
-                }
+                if(teams[i]!=teamId||lossClock[i]<0||Clock-lossClock[i]>settings.dangerMemory||dangerCleared[i]||NearestSite(lossPosition[i])!=site)continue;
+                if(lossClock[i]>newest){newest=lossClock[i];point=lossPosition[i];}
             }
-            return false;
+            return newest>=0;
         }
         // Count confirmed sightings or inferred pressure without inventing an enemy position.
         int BackupThreat(int site,int viewer,int[] team,VisionSystem vision)
@@ -363,7 +368,7 @@ namespace FpsManager
             {
                 if(supportSite[i]<0) continue;
                 if(PlantedSite>=0||!combat.Alive(i)||Clock>=supportUntil[i]) supportSite[i]=-1;
-                else if(BackupThreat(supportSite[i],ct,team,vision)>=2) supportUntil[i]=Clock+4;
+                else if(BackupThreat(supportSite[i],ct,team,vision)>=2) { Vector2 risk; supportUntil[i]=LossRisk(supportSite[i],ct,team,out risk)?Math.Max(supportUntil[i],Clock+6):Clock+4; }
             }
             if(PlantedSite>=0) return;
             for(int site=0;site<layout.SiteCount;site++)
@@ -391,7 +396,7 @@ namespace FpsManager
                         if(distance<nearest) { nearest=distance; best=i; }
                     }
                     if(best<0) break;
-                    supportSite[best]=site; supportUntil[best]=Clock+4;
+                    Vector2 risk; supportSite[best]=site; supportUntil[best]=Clock+(LossRisk(site,ct,team,out risk)?Math.Max(12,nearest/2.4f+6):4);
                 }
             }
         }
@@ -416,8 +421,7 @@ namespace FpsManager
                 Vector2 danger;
                 if(LossRisk(home,ctTeam,team,out danger))
                 {
-                    objective.task=Vector2.Distance(positions[player],danger)>settings.interactRadius?PlayerTask.Rotate:PlayerTask.DefendSite;
-                    objective.destination=danger; objective.cautious=true;
+                    objective=Investigate(player,positions[player],danger,ctTeam,team,combat.Engaging(player)||KnownEnemiesNear(ctTeam,home,team,vision,combat)>0);
                     objective.watch=Vector2.Distance(positions[player],danger)>1?danger-positions[player]:WatchDirection(ctTeam,home,danger,team,vision,combat,true);
                     return objective;
                 }
@@ -460,6 +464,7 @@ namespace FpsManager
             int friends = LivingFriendsNear(player, home, positions, team, ctTeam, combat);
             int down = RecentLossesAt(home, team[player], team);
             int tolerance = composure[player] >= 90 ? 1 : 0;
+            if(team[player]==StrategyTeam)tolerance+=Strategy==TeamStrategy.Defensive?-1:Strategy==TeamStrategy.Aggressive?1:0;
             // No guard is needed for the quiet case: a living defender always counts
             // themselves, so with nothing seen and nobody lost the sum cannot win.
             if (seen + down > friends + tolerance)

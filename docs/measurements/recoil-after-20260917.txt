@@ -1,0 +1,10 @@
+﻿SPRAY aim=50 range=10 first5=87.6% last15=48.4% head=7.6%
+SPRAY aim=50 range=25 first5=55.9% last15=10.9% head=2.7%
+SPRAY aim=50 range=40 first5=31.6% last15=4.2% head=1.1%
+SPRAY aim=85 range=10 first5=92.9% last15=69.6% head=12.3%
+SPRAY aim=85 range=25 first5=73.3% last15=25.4% head=4.4%
+SPRAY aim=85 range=40 first5=51.5% last15=11.4% head=2.5%
+SPRAY aim=100 range=10 first5=96.6% last15=76.2% head=18.2%
+SPRAY aim=100 range=25 first5=79.5% last15=40.4% head=6.8%
+SPRAY aim=100 range=40 first5=64.5% last15=20.0% head=3.4%
+CHAIN 3s aim85 range25 stationary non-firing opponents multi=300/300 kills=1053

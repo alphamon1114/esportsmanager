@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace FpsManager
 {
+#if UNITY_5_3_OR_NEWER
+    [DefaultExecutionOrder(200)]
+#endif
     public partial class Prototype : MonoBehaviour
     {
         public Database Data { get; private set; }
@@ -24,7 +27,7 @@ namespace FpsManager
         readonly int[] teamIndex = new int[10];
         readonly Vector2[] visionPositions = new Vector2[10];
         readonly Vector2[] visionFacing = new Vector2[10];
-        bool fogOfWar = true;
+        bool fogOfWar = false;
         bool showDebugInfo = false;
         CombatSystem combat;
         readonly CombatSettings combatSettings = new CombatSettings();
@@ -45,6 +48,7 @@ namespace FpsManager
         readonly Vector2[] destinations = new Vector2[10];
         readonly float[] moveSpeed = new float[10];
         readonly PeekMovement[] peeking = new PeekMovement[10];
+        readonly MovementAim[] movementAim = new MovementAim[10];
         readonly bool[] routeValid = new bool[10];
         readonly float[] repathDelay = new float[10];
         readonly bool[] moving = new bool[10];
@@ -73,6 +77,7 @@ namespace FpsManager
             matchState=new PlayerMatchState[Data.players.Length];
             for(int i=0;i<matchState.Length;i++) matchState[i]=new PlayerMatchState();
             BuildMap();
+            BuildElevation();
             navigation = new DeploymentNavigation(obstacles);
             for (int i = 0; i < Data.players.Length; i++) teamIndex[i] = Data.players[i].teamId == Data.teams[0].id ? 0 : 1;
             vision = new VisionSystem(navigation, visionSettings, Data.players.Length);
@@ -96,6 +101,7 @@ namespace FpsManager
             mapCamera.cullingMask=~(1<<9);
             mapCamera.orthographicSize = 53;
             eyeCamera = NewCamera("Selected player camera", eyeTexture);
+            var displayCamera=NewCamera("Broadcast display",null);displayCamera.cullingMask=0;displayCamera.depth=-10;
             eyeCamera.fieldOfView = 85;
             eyeCamera.nearClipPlane = .08f;
             eyeCamera.cullingMask = ~(1 << 8);
@@ -119,7 +125,7 @@ namespace FpsManager
         }
         GameObject Box(string name, Vector3 position, Vector3 scale, Material material)
         {
-            if(name=="Wall"||name=="Cover") obstacles.Add(new Rect(position.x-scale.x/2,100-position.z-scale.z/2,scale.x,scale.z));
+            if(name=="Wall"||name=="Cover") { var rect=new Rect(position.x-scale.x/2,100-position.z-scale.z/2,scale.x,scale.z);obstacles.Add(rect);elevation.Add(rect,position.y-scale.y/2,position.y+scale.y/2); }
             var obj=GameObject.CreatePrimitive(PrimitiveType.Cube); obj.name=name;
             obj.transform.SetParent(transform); obj.transform.position=position; obj.transform.localScale=scale;
             obj.GetComponent<Renderer>().sharedMaterial=material; return obj;
@@ -168,6 +174,13 @@ namespace FpsManager
             var result = new MapLayout();
             result.Sites = sites;
             result.SiteNames = new[] { "A", "B" };
+            result.AttackerSpawn=new Vector2(30,89);
+            result.FlankRoutes=new[]{
+                new[]{new[]{new Vector2(27,54),new Vector2(18,20),new Vector2(37,20),new Vector2(55,10),new Vector2(65,21),new Vector2(83,21)},
+                      new[]{new Vector2(45,50),new Vector2(45,38),new Vector2(65,38),new Vector2(65,21),new Vector2(83,21)}},
+                new[]{new[]{new Vector2(89,63),new Vector2(83,33),new Vector2(65,21),new Vector2(55,10),new Vector2(37,10),new Vector2(18,20)},
+                      new[]{new Vector2(45,50),new Vector2(45,38),new Vector2(65,38),new Vector2(65,21),new Vector2(55,10),new Vector2(37,10),new Vector2(18,20)}}
+            };
             result.Staging = new Vector2[sites.Length];
             result.HoldRing = new Vector2[sites.Length][];
             result.Approaches = new Vector2[sites.Length][];
@@ -300,8 +313,17 @@ namespace FpsManager
             destinations[player]=destination; repathDelay[player]=.5f;
             try
             {
-                routes[player]=navigation.Clear(MapPosition(player),destination)
-                    ?new List<Vector2>{destination}:navigation.Route(MapPosition(player),destination,new List<Vector2>());
+                if(roundMode&&teamIndex[player]!=ctTeam&&Vector2.Distance(MapPosition(player),destination)>18)
+                {
+                    var threats=new List<Vector2>();
+                    for(int enemy=0;enemy<10;enemy++)if(teamIndex[enemy]!=teamIndex[player])
+                    {
+                        var info=vision.Knowledge(teamIndex[player],enemy);
+                        if(info.known&&!info.anonymous&&info.age<3)threats.Add(info.lastKnownPosition);
+                    }
+                    routes[player]=navigation.CombatRoute(MapPosition(player),destination,layout.AttackerSpawn,threats);
+                }
+                else routes[player]=navigation.Clear(MapPosition(player),destination)?new List<Vector2>{destination}:navigation.Route(MapPosition(player),destination,new List<Vector2>());
                 routeSteps[player]=0; routeValid[player]=true;
             }
             catch(InvalidOperationException) { routeValid[player]=false; }
@@ -324,45 +346,33 @@ namespace FpsManager
             while(remaining>0&&routeSteps[player]<routes[player].Count)
             {
                 Vector3 target=World(routes[player][routeSteps[player]]),position=actors[player].transform.position;
+                if(ElevatedMatch)target.y=position.y;
                 Vector3 direction=target-position;
                 float distance=direction.magnitude;
-                if(distance>.001f) actors[player].transform.rotation=Quaternion.RotateTowards(actors[player].transform.rotation,Quaternion.LookRotation(direction),360*tick);
+                if(!roundMode&&distance>.001f) actors[player].transform.rotation=Quaternion.RotateTowards(actors[player].transform.rotation,Quaternion.LookRotation(direction),360*tick);
                 float step=Mathf.Min(remaining,distance);
-                actors[player].transform.position=Vector3.MoveTowards(position,target,step);
+                actors[player].transform.position=Vector3.MoveTowards(position,target,step);GroundActor(player);
                 remaining-=step;
                 if(distance<=step+.001f) routeSteps[player]++; else break;
             }
             if(roundMode&&autonomy!=null) autonomy.Footstep(player,MapPosition(player),Vector2.Distance(previousPosition,MapPosition(player)));
         }
-        // Turns a moving player toward whatever their team currently has a contact on,
-        // limited to what they could plausibly cover while walking. Before this a player
-        // faced their travel direction and nothing else, so two enemies crossing a corridor
-        // on different headings passed each other without either one ever looking.
-        void AimWhileMoving(int player, float tick)
+        // Navigation writes position only. Aim tracks a known world point, including
+        // behind the direction of travel when strafing or backing into cover.
+        void AimWhileMoving(int player, PlayerObjective order, float tick)
         {
-            int team=teamIndex[player];
-            Vector2 from=MapPosition(player), travel=MapFacing(player);
-            int best=-1; float distance=float.MaxValue;
-            for(int enemy=0;enemy<actors.Count;enemy++)
+            Vector2 position=MapPosition(player), fallback=position+MapFacing(player)*12;
+            bool holding=order.task==PlayerTask.DefendSite||order.task==PlayerTask.HoldSite;
+            if(order.valid&&holding&&Vector2.Distance(position,order.destination)<8&&order.watch.sqrMagnitude>.001f)
+                fallback=position+order.watch.normalized*12;
+            else if(routeSteps[player]<routes[player].Count)
             {
-                if(teamIndex[enemy]==team||!combat.Alive(enemy)) continue;
-                var contact=vision.Knowledge(team,enemy);
-                if(!contact.known) continue;
-                Vector2 to=contact.lastKnownPosition-from;
-                float candidate=to.magnitude;
-                if(candidate>visionSettings.maxRange||candidate>=distance) continue;
-                if(Mathf.Abs(CombatSystem.SignedAngle(travel,to))>90f) continue;   // never behind
-                distance=candidate; best=enemy;
+                int next=routeSteps[player];
+                if(Vector2.Distance(position,routes[player][next])<3&&next+1<routes[player].Count) next++;
+                fallback=routes[player][next];
             }
-            if(best>=0) { FaceWatch(player,vision.Knowledge(team,best).lastKnownPosition-from,tick); return; }
-            // Nothing known: sweep the angles either side of the way you are walking. A
-            // player whose view is welded to their own heading never notices anyone on a
-            // crossing path, and since neither of them looks, neither of them ever knows
-            // there is something to look at.
-            float phase=(elapsed/2.6f+player*.37f)*2f*Mathf.PI;
-            float sweep=Mathf.Sin(phase)*45f*Mathf.Deg2Rad;
-            float heading=Mathf.Atan2(travel.y,travel.x)+sweep;
-            FaceWatch(player,new Vector2(Mathf.Cos(heading),Mathf.Sin(heading)),tick);
+            else if(order.valid&&order.watch.sqrMagnitude>.001f) fallback=position+order.watch.normalized*12;
+            FaceWatch(player,movementAim[player].Choose(player,position,fallback,teamIndex,vision),tick);
         }
         void FaceWatch(int player, Vector2 watch, float tick)
         {
@@ -372,11 +382,12 @@ namespace FpsManager
         }
         public void PlaceTeams()
         {
+            ResetElevation();
             deploymentStarted=false; paused=false; elapsed=0; DeploymentComplete=false; roundMode=false;
             ClearRoutes(); Array.Clear(moveSpeed,0,moveSpeed.Length); preparationError=null;
             autonomy=null; SyncUtilityVisuals();
             if(vision!=null) { vision.Reset(); vision.LegacyFootsteps=true; vision.ExtraSight=null; vision.Blinded=null; }
-            if(combat!=null) { combat.AmmoEnabled=false; combat.Killed=null; combat.ShotFired=null; combat.ReloadStarted=null; combat.ShotMissed=null; combat.FollowupChosen=null; }
+            if(combat!=null) { combat.DamageDealt=null; combat.VisualShot=null; ResetShotPresentation(); combat.AmmoEnabled=false; combat.Killed=null; combat.ShotFired=null; combat.ReloadStarted=null; combat.ShotMissed=null; combat.FollowupChosen=null; }
             if(combat!=null) { for(int i=0;i<10;i++) combat.Equip(i,null); combat.Reset(roundSeed); }
             if(director!=null) director.Reset();
             for(int i=0;i<alive.Length;i++) { alive[i]=true; arrived[i]=false; moving[i]=false; }
@@ -419,12 +430,7 @@ namespace FpsManager
         }
         public void PrepareNextRound()
         {
-            if(roundMode && director.Phase==RoundPhase.Ended)
-            {
-                LastRoundOutcome=director.Outcome;
-                CompletedRounds++;
-                RecordRoundResult(director.Outcome);
-            }
+            CompleteRoundOnce();
             roundSeed=unchecked(roundSeed+1);
             // MatchState, roster stats and prepared team configuration are not round state.
             PlaceTeams();
@@ -433,6 +439,7 @@ namespace FpsManager
         }
         public void AdvanceFrame(float delta)
         {
+            if(AutomaticMatch){AdvanceMatch(delta);return;}
             // Preparation does not reveal contacts or resume combat at the new spawn.
             if(!deploymentStarted||paused) return;
             SimulateMovement(delta);
@@ -441,10 +448,16 @@ namespace FpsManager
         public void Select(int index)
         {
             if(index<0||index>=actors.Count) return;
+            if(selected!=index)ClearViewKick();
             selected=index;
             for(int i=0;i<actors.Count;i++) actors[i].layer=i==selected?8:0;
+            SyncCharacterVisuals();
             eyeCamera.transform.position=actors[index].transform.position+Vector3.up*.65f;
             eyeCamera.transform.rotation=actors[index].transform.rotation;
+#if UNITY_5_3_OR_NEWER
+            eyeCamera.transform.rotation*=Quaternion.Euler(-combat.AimElevation(index),0,0);
+#endif
+            SyncFirstPersonEquipment();
         }
         public bool IsAlliedPlayer(int player) { return player >= 0 && player < Data.players.Length && Data.players[player].teamId == AlliedTeamId; }
         public void AssignZone(int player, int zone)
@@ -487,6 +500,8 @@ namespace FpsManager
                 var rng=new DeterministicRandom(unchecked(roundSeed ^ (team+1)*73856093));
                 bool ct=team==ctTeam;
                 int[] slots=(rng.NextUInt()%2==0)?new[]{0,0,1,1,2}:new[]{0,0,1,2,2};
+                if(AutomaticMatch&&team==AlliedTeamIndex)
+                    slots=Strategy==TeamStrategy.Aggressive?new[]{0,1,1,1,2}:Strategy==TeamStrategy.Defensive?new[]{0,0,1,2,2}:slots;
                 // Mirror the two sites, so one site is not always the heavily staffed one.
                 if(rng.NextUInt()%2==0) for(int j=0;j<slots.Length;j++) if(slots[j]!=1) slots[j]=2-slots[j];
                 for(int s=0;s<slots.Length;s++)
@@ -516,27 +531,35 @@ namespace FpsManager
                 destinations[i]=homeAnchor[i];
             }
             ClearRoutes();
-            foreach(var state in matchState) state.RestockUtility();
-            autonomy=new PlayerAutonomy(roundSeed,navigation);
+            if(!AutomaticMatch)foreach(var state in matchState) state.RestockUtility();
+            autonomy=new PlayerAutonomy(roundSeed,navigation); combat.ConfigureSpam(autonomy,navigation);
+            autonomy.SetUtilityContext(teamIndex,visionPositions);
+            for(int i=0;i<10;i++) movementAim[i]=new MovementAim();
             for(int i=0;i<10;i++) peeking[i]=new PeekMovement(unchecked(roundSeed^(i+1)*73856093),navigation,Data.players[i].stats.movement);
             vision.LegacyFootsteps=false; vision.ExtraSight=autonomy.ClearSight; vision.Blinded=autonomy.Blinded;
             combat.AmmoEnabled=true;
             killFeed.Clear(); combat.Killed=RecordKill;
-            for(int i=0;i<10;i++) combat.Equip(i,WeaponCatalog.Equipped(matchState[i].equipment));
+            for(int i=0;i<10;i++) { combat.Equip(i,WeaponCatalog.Equipped(matchState[i].equipment));combat.BindProtection(i,matchState[i]); }
             combat.ShotMissed=null;
             for(int i=0;i<10;i++) combat.SetMovementSkill(i,Data.players[i].stats.movement);
             combat.FollowupChosen=(i,style)=> { if(style==FollowupStyle.EvadeAndTap) peeking[i].RequestRetap(); };
+            if(AutomaticMatch){Statistics.Begin(teamIndex,ctTeam);combat.DamageDealt=Statistics.Damage;}
+            combat.VisualShot=ShotPresentation;
             combat.ShotFired=i=>autonomy.Sounds.Emit(i,MapPosition(i),SoundKind.Gunshot);
             combat.ReloadStarted=i=>autonomy.Sounds.Emit(i,MapPosition(i),SoundKind.Reload);
+            ConfigureElevation();
             director.Begin(roundSeed,teamIndex,ctTeam);
+            roundScored=false;
+            director.StrategyTeam=AlliedTeamIndex;director.Strategy=AutomaticMatch?Strategy:TeamStrategy.Balanced;
             director.SoundIntel=autonomy.Sounds;
+            director.ConfigureTactics(Data.players,teamIndex,ctTeam,navigation);
             deploymentStarted=true; roundMode=true; paused=false; DeploymentComplete=false; preparationError=null;
-            // Everyone may shoot from the first tick; the stand-still-to-engage rule is a
-            // movement-test simplification, not a round rule.
+            // Spawned players are stationary. Each round tick updates fire readiness
+            // from actual translation, independently of their aim direction.
             for(int i=0;i<arrived.Length;i++) arrived[i]=true;
         }
         void Update() { if(Data!=null&&error==null) AdvanceFrame(Time.deltaTime); }
-        void LateUpdate() { if(eyeCamera!=null&&actors.Count>selected) Select(selected); SyncUtilityVisuals(); }
+        void LateUpdate() { if(eyeCamera!=null&&actors.Count>selected) Select(selected); SyncUtilityVisuals(); UpdateShotPresentation(); }
         public VisionSystem Vision { get { return vision; } }
         public DeploymentNavigation Navigation { get { return navigation; } }
         public int AlliedTeamIndex { get { return Data.teams[0].id==AlliedTeamId?0:1; } }
@@ -582,9 +605,8 @@ namespace FpsManager
             {
                 if(!alive[i]) { actors[i].GetComponent<Renderer>().sharedMaterial=deadMaterial; continue; }
                 if(!combat.Engaging(i)||moving[i]) continue;
-                // Combat steers a shooter who is standing still. A player on the move keeps
-                // the facing their movement gave them, so they can fire at what is ahead of
-                // them but not at something behind: no turning to shoot while running.
+                // Moving actors use the same independent aim for rendering and detection.
+                // Combat may fire only after they have stopped.
                 var f=visionFacing[i];
                 actors[i].transform.rotation=Quaternion.LookRotation(new Vector3(f.x,0,-f.y));
             }
@@ -616,9 +638,10 @@ namespace FpsManager
             for(int i=0;i<actors.Count;i++)
             {
                 repathDelay[i]=Mathf.Max(0f,repathDelay[i]-tick);
-                if(!combat.Alive(i)) { routeValid[i]=false; continue; }
+                if(!combat.Alive(i)) { routeValid[i]=false; SettleDeadHeight(i,tick); continue; }
                 moving[i]=false;
                 var objective=autonomy.Decide(i,director.Objective(i),MapPosition(i),Data.players[i],matchState[i],combat,vision,teamIndex[i],teamIndex[i]==ctTeam);
+                if(StepElevation(i,objective,tick))continue;
                 arrived[i]=true;
                 Vector2 probe=MapPosition(i)+MapFacing(i)*12;
                 bool contact=false;
@@ -641,7 +664,7 @@ namespace FpsManager
                 {
                     var before=MapPosition(i);
                     var next=Vector2.MoveTowards(before,peekTarget,tick*3.5f);
-                    actors[i].transform.position=World(next);
+                    actors[i].transform.position=World(next);GroundActor(i);
                     moving[i]=Vector2.Distance(before,next)>.001f;
                     arrived[i]=!moving[i]&&peeking[i].ReadyToFire; // Stop and settle before shooting.
                     autonomy.Footstep(i,next,Vector2.Distance(before,next));
@@ -652,18 +675,26 @@ namespace FpsManager
                 // A player with something to shoot at stops and fights. Moving accuracy is
                 // not modelled yet, so standing still is the honest simplification.
                 // A player breaking off ignores that and keeps moving.
-                if(!objective.disengage&&combat.Engaging(i)) { moveSpeed[i]=0; continue; }
+                bool seesEnemy=false;
+                for(int enemy=0;enemy<actors.Count;enemy++) if(teamIndex[enemy]!=teamIndex[i]&&vision.Sees(i,enemy)) { seesEnemy=true; break; }
+                bool intoCover=objective.hasCover&&Vector2.Distance(objective.destination,objective.cover)<.1f&&Vector2.Distance(MapPosition(i),objective.cover)>.2f;
+                if(!objective.disengage&&!intoCover&&(seesEnemy||combat.Engaging(i))) { moveSpeed[i]=0; AimWhileMoving(i,objective,tick); continue; }
                 if(objective.valid) MoveTo(i,objective.destination);
                 if(routeValid[i]&&routeSteps[i]<routes[i].Count)
                 {
-                    StepRoute(i,tick); moving[i]=true;
-                    // Walking somewhere does not mean staring at your own feet. Check the
-                    // angle the team has a contact on, as long as it is not behind you.
-                    if(!objective.disengage) AimWhileMoving(i,tick);
+                    Vector2 before=MapPosition(i);
+                    StepRoute(i,tick); moving[i]=Vector2.Distance(before,MapPosition(i))>.001f;
+                    arrived[i]=!moving[i];
+                    AimWhileMoving(i,objective,tick);
                 }
-                else { moveSpeed[i]=0; if(objective.valid) FaceWatch(i,objective.watch,tick); }
+                else { moveSpeed[i]=0; AimWhileMoving(i,objective,tick); }
             }
             elapsed+=tick;
+            for(int i=0;i<actors.Count;i++)
+            {
+                var order=director.Objective(i);
+                combat.SpamAllowed[i]=!moving[i]&&!order.disengage&&order.task!=PlayerTask.PlantBomb&&order.task!=PlayerTask.Defuse&&order.task!=PlayerTask.RecoverBomb&&order.task!=PlayerTask.Retake;
+            }
             UpdateSenses(tick);
             autonomy.Sounds.Tick(tick,visionPositions,teamIndex,alive,navigation,vision);
             director.Tick(tick,visionPositions,teamIndex,ctTeam,homeAnchor,composureStats,vision,combat);
@@ -710,91 +741,17 @@ namespace FpsManager
         void OnGUI()
         {
             if(error!=null) { GUI.Label(new Rect(20,20,1000,100),error); return; }
-            if(Data==null) return;
-            GUI.matrix=Matrix4x4.Scale(new Vector3(Screen.width/1280f,Screen.height/800f,1));
-            DrawMatchScore();
-            GUI.Label(new Rect(20,39,1240,25),RoundLine()
-                +"   ALIVE "+Data.teams[AlliedTeamIndex].name+" "+LivingCount(AlliedTeamIndex)+" : "+LivingCount(1-AlliedTeamIndex)+" "+Data.teams[1-AlliedTeamIndex].name
-                +"   SEED "+roundSeed+" | YOUR TEAM: SPIRIT");
-            Rect map=new Rect(20,80,650,650); GUI.DrawTexture(map,mapTexture,ScaleMode.StretchToFill);
-            DrawUtilityMap(map);
-            int viewerTeam=AlliedTeamIndex;
-            for(int i=0;i<actors.Count;i++)
-            {
-                bool own=teamIndex[i]==viewerTeam,living=combat.Alive(i);
-                var contact=vision.Knowledge(viewerTeam,i);
-                Vector2 shown;
-                if(own||!fogOfWar) shown=MapPosition(i);
-                else if(!living) continue;              // a dead opponent is not tracked on the map
-                else if(contact.known) shown=contact.lastKnownPosition;
-                else continue;                          // no contact: the marker is not drawn at all
-                var p=mapCamera.WorldToViewportPoint(World(shown));
-                string label=!living?"x "+Data.players[i].handle
-                    :own||!fogOfWar||contact.visible?Data.players[i].handle:(contact.anonymous?"Sound?":Data.players[i].handle+"?");
-                if(GUI.Button(new Rect(map.x+p.x*map.width-31,map.y+(1-p.y)*map.height-11,62,22),label)) Select(i);
-            }
-            GUI.Label(new Rect(683,76,570,24),"SELECTED PLAYER / FIRST PERSON");
-            GUI.DrawTexture(new Rect(685,104,570,321),eyeTexture,ScaleMode.StretchToFill);
-            DrawUtilityPov(new Rect(685,104,570,321));
-            DrawKillFeed();
-            GUI.Label(new Rect(964,252,20,25),"+");
-            var player=Data.players[selected]; var s=player.stats;
-            GUI.Label(new Rect(685,433,570,25),player.handle+" / "+player.weaponPosition+" "+player.riflerRole
-                +"   HP "+(combat.Alive(selected)?Mathf.RoundToInt(combat.Health(selected)).ToString():"0 (down)"));
-            GUI.Label(new Rect(685,459,570,25),$"AIM {s.aim}   UTIL {s.utility}   MOVE {s.movement}   CHA {s.charisma}   COMP {s.composure}");
-            var held=combat.WeaponFor(selected);
-            GUI.Label(new Rect(685,486,570,20),held.id+" | Body "+held.damage+" / Head "+held.HeadDamage+" | Last hit: "+combat.LastHit(selected));
-            scroll=GUI.BeginScrollView(new Rect(685,510,570,22),scroll,new Rect(0,0,530,player.weapons.Length*21));
-            for(int i=0;i<player.weapons.Length;i++) GUI.Label(new Rect(0,i*21,520,21),player.weapons[i].weapon+"   "+new string('*',player.weapons[i].stars));
-            GUI.EndScrollView();
-            for(int team=0;team<2;team++)
-            {
-                                int[] counts=new int[3]; for(int j=0;j<10;j++) if(Data.players[j].teamId==Data.teams[team].id) counts[assignments[j]]++;
-                int n=0; GUI.Label(new Rect(685,590+team*62,570,23),Data.teams[team].name+(team==ctTeam?" / CT":" / T")+(!deploymentStarted && showDebugInfo && Data.teams[team].id==AlliedTeamId?"   B / Mid / A: "+counts[0]+" / "+counts[1]+" / "+counts[2]:""));
-                for(int i=0;i<Data.players.Length;i++) if(Data.players[i].teamId==Data.teams[team].id)
-                {
-                    int index=i; string name=(combat.Alive(i)?"":"x ")+Data.players[i].handle+(Data.teams[team].iglPlayerId==Data.players[i].id?" [IGL]":"");
-                    if(GUI.Button(new Rect(685+n++*114,614+team*62,110,27),name)) Select(index);
-                }
-            }
-            if(autonomy!=null&&autonomy.Radio!=null) GUI.Label(new Rect(685,537,570,25),autonomy.Radio);
-            string contacts="";
-            for(int i=0;i<Data.players.Length;i++)
-            {
-                if(teamIndex[i]==viewerTeam) continue;
-                var contact=vision.Knowledge(viewerTeam,i);
-                if(!contact.known) continue;
-                contacts+=(contacts.Length>0?"  ":"")+(contact.anonymous?"Sound?":Data.players[i].handle)+(contact.visible?"*":" "+contact.age.ToString("F1")+"s");
-            }
-            GUI.Label(new Rect(685,708,570,22),"SPIRIT CONTACTS / "+(contacts.Length>0?contacts:"none")+"   (* = seen now)");
-            if(roundMode && showDebugInfo)
-            {
-                var objective=director.Objective(selected);
-                string bomb=director.PlantedSite>=0?"planted "+director.SiteName(director.PlantedSite)
-                    :director.Carrier>=0?"carried by "+Data.players[director.Carrier].handle
-                    :director.BombDropped?"dropped":"-";
-                GUI.Label(new Rect(685,730,570,22),"BOMB "+bomb+"   TARGET "+director.SiteName(director.TargetSite)
-                    +"   "+Data.players[selected].handle+": "+(combat.Alive(selected)?objective.task.ToString():"down"));
-            }
-            if(!deploymentStarted)
-            {
-                if(GUI.Button(new Rect(20,741,180,32),"Start round"))
-                    try { BeginRound(); } catch(Exception ex) { preparationError=ex.Message; Debug.LogException(ex); }
-                if(GUI.Button(new Rect(210,741,180,32),"Swap starting sides")) SwapPreviewSides();
-            }
-            else
-            {
-                if(GUI.Button(new Rect(20,741,180,32),paused?"Resume":"Pause")) paused=!paused;
-                // Reset advances the seed so repeated runs explore different shots.
-                if(GUI.Button(new Rect(210,741,180,32),"Reset / next seed")) PrepareNextRound();
-            }
-            if(GUI.Button(new Rect(400,741,180,32),fogOfWar?"Fog of war: ON":"Fog of war: OFF")) fogOfWar=!fogOfWar;
-            if(GUI.Button(new Rect(590,741,90,32),showDebugInfo?"Debug: ON":"Debug: OFF")) showDebugInfo=!showDebugInfo;
-            if(preparationError!=null) GUI.Label(new Rect(685,751,570,25),preparationError);
-            GUI.Label(new Rect(20,776,1240,24),"Blue: CT | Orange: T | Click a name to change POV | Map hides Falcons until Spirit spots them; '?' marks a remembered position");
+            if(Data==null)return;
+            DrawBroadcastHud();
         }
         void OnDestroy()
         {
+            DisposeShotPresentation();
+            if(mapCamera!=null)mapCamera.targetTexture=null;
+            if(eyeCamera!=null)eyeCamera.targetTexture=null;
+#if UNITY_5_3_OR_NEWER
+            if(equipmentCamera!=null)equipmentCamera.targetTexture=null;
+#endif
             if(mapTexture!=null) { mapTexture.Release(); DestroyImmediate(mapTexture); }
             if(eyeTexture!=null) { eyeTexture.Release(); DestroyImmediate(eyeTexture); }
             foreach(var m in materials) if(m!=null) DestroyImmediate(m);
