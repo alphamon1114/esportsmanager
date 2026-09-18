@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 namespace FpsManager
 {
@@ -13,7 +13,7 @@ namespace FpsManager
   public KillEvent KillFeedAt(int index) { return killFeed[index]; }
   void RecordKill(KillEvent entry)
   {
-   if(AutomaticMatch)Statistics.Kill(entry,director.Clock);
+   if(AutomaticMatch){Statistics.Kill(entry,director.Clock);if(teamIndex[entry.killer]!=teamIndex[entry.victim])RegisterTrade(entry);var info=vision.Knowledge(teamIndex[entry.killer],entry.victim);if(teamIndex[entry.killer]!=teamIndex[entry.victim]&&info.known&&!info.anonymous&&info.age<=1.5f)director.PlanKill(entry.killer,entry.victim,info.lastKnownPosition,teamIndex,ctTeam);}
    DropOnDeath(entry.victim);DropBombEquipmentOnDeath(entry.victim);
    killFeed.Add(entry); if(killFeed.Count>6) killFeed.RemoveAt(0);
   }

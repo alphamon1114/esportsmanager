@@ -30,6 +30,7 @@ namespace FpsManager
   void ShotPresentation(int i,Vector2 kick)
   {
 #if UNITY_5_3_OR_NEWER
+   if(FastForwarding)return;
    flashUntil[i]=Time.time+.055f;visualShots[i]++;
    if(i!=selected)return;
    var gun=combat.WeaponFor(i);float impulse=gun.id=="awp"?2.2f:gun.id=="desert_eagle"?1.6f:.65f;
@@ -41,6 +42,7 @@ namespace FpsManager
   }
   void ResetShotPresentation()
   {
+   ResetBulletTraces();
 #if UNITY_5_3_OR_NEWER
    viewKick=Vector3.zero;viewPush=0;
    for(int i=0;i<10;i++){flashUntil[i]=0;visualShots[i]=0;if(muzzleFlashes[i]!=null)muzzleFlashes[i].SetActive(false);}
@@ -54,6 +56,7 @@ namespace FpsManager
   }
   void UpdateShotPresentation()
   {
+   UpdateBulletTraces();
 #if UNITY_5_3_OR_NEWER
    if(combat==null)return;
    if(!combat.Alive(selected)){viewKick=Vector3.zero;viewPush=0;}
@@ -88,9 +91,12 @@ namespace FpsManager
   }
   void DisposeShotPresentation()
   {
+   DisposeBulletTraces();
 #if UNITY_5_3_OR_NEWER
    if(flashMesh!=null)Destroy(flashMesh);if(flashMaterial!=null)Destroy(flashMaterial);
 #endif
   }
  }
 }
+
+

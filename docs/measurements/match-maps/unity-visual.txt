@@ -1,0 +1,5 @@
+SOURCE_MATCH_VISUAL_OK de_dust2 spawn/actual mesh/site POV/radar
+SOURCE_MATCH_VISUAL_OK de_mirage spawn/actual mesh/site POV/radar
+SOURCE_MATCH_VISUAL_OK de_nuke spawn/actual mesh/site POV/radar
+SOURCE_MATCH_VISUAL_OK de_vertigo spawn/actual mesh/site POV/radar
+Exiting batchmode successfully now!

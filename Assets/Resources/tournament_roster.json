@@ -1,0 +1,3717 @@
+{
+  "snapshotDate": "2026-09-18",
+  "ratingMethod": "Role-based design estimates plus recent team-result form adjustments. Not direct measurements of utility, movement, mental or composure.",
+  "teams": [
+    {
+      "id": "spirit",
+      "name": "Team Spirit",
+      "iglPlayerId": "spirit_magixx",
+      "sourceUrls": [
+        "https://www.hltv.org/team/7020/spirit",
+        "https://blast.tv/cs/team/80b609cb/spirit"
+      ],
+      "seed": 1,
+      "coachName": "hally"
+    },
+    {
+      "id": "falcons",
+      "name": "Team Falcons",
+      "iglPlayerId": "falcons_karrigan",
+      "sourceUrls": [
+        "https://www.hltv.org/team/11283/falcons"
+      ],
+      "seed": 3,
+      "coachName": "zonic"
+    },
+    {
+      "id": "mongolz",
+      "name": "The MongolZ",
+      "iglPlayerId": "mongolz_blitz",
+      "coachName": "maaRaa",
+      "seed": 8,
+      "sourceUrls": [
+        "https://www.hltv.org/news/45522/the-mongolz-bench-darkmeister-tikuak"
+      ],
+      "rosterNote": "User-selected last-event lineup (FISSURE Playground 3): bLitz, 910, cobrazera, tikuak, DarkMeister. Not current active five: tikuak/DarkMeister benched Sep 15; Techno not at that event.",
+      "verifiedAt": "2026-09-18",
+      "formAdjustment": -3
+    },
+    {
+      "id": "vitality",
+      "name": "Team Vitality",
+      "iglPlayerId": "vitality_apex",
+      "coachName": "XTQZZZ",
+      "seed": 5,
+      "sourceUrls": [
+        "https://www.hltv.org/team/9565/vitality"
+      ],
+      "rosterNote": "Confirmed permanent lineup. jL was an event stand-in; mezii listed for September 18 match. Porto semifinal; EWC quarterfinal.",
+      "verifiedAt": "2026-09-18",
+      "formAdjustment": 0
+    },
+    {
+      "id": "aurora",
+      "name": "Team Aurora",
+      "iglPlayerId": "aurora_kyxsan",
+      "coachName": "ash",
+      "seed": 7,
+      "sourceUrls": [
+        "https://www.hltv.org/team/11861/aurora"
+      ],
+      "rosterNote": "Jimpphat/kyxsan current starters, MAJ3R benched. Porto 7-8th, EWC 9-16th; defeated NAVI September 17.",
+      "verifiedAt": "2026-09-18",
+      "formAdjustment": -1
+    },
+    {
+      "id": "furia",
+      "name": "FURIA",
+      "iglPlayerId": "furia_fallen",
+      "coachName": "sidde",
+      "seed": 6,
+      "sourceUrls": [
+        "https://www.hltv.org/team/8297/furia"
+      ],
+      "rosterNote": "EWC fourth; Porto and FPG3 5-6th. FalleN remains active at snapshot date.",
+      "verifiedAt": "2026-09-18",
+      "formAdjustment": -1
+    },
+    {
+      "id": "mouz",
+      "name": "MOUZ",
+      "iglPlayerId": "mouz_xertion",
+      "coachName": "sycrone",
+      "seed": 2,
+      "sourceUrls": [
+        "https://www.hltv.org/team/4494/mouz"
+      ],
+      "rosterNote": "xertioN IGL; PR/xelex active; Brollan/Jimpphat not used. Bounty S2 winner, Porto runner-up, EWC quarterfinal.",
+      "verifiedAt": "2026-09-18",
+      "formAdjustment": 2
+    },
+    {
+      "id": "fut",
+      "name": "FUT",
+      "iglPlayerId": "fut_krabeni",
+      "coachName": "coolio",
+      "seed": 4,
+      "sourceUrls": [
+        "https://www.hltv.org/team/13286/fut"
+      ],
+      "rosterNote": "xfl0ud active, lauNX benched. SunPayus report unconfirmed: cmtry retained. EWC runner-up, Porto 7-8th.",
+      "verifiedAt": "2026-09-18",
+      "formAdjustment": 1
+    }
+  ],
+  "players": [
+    {
+      "id": "spirit_donk",
+      "teamId": "spirit",
+      "handle": "donk",
+      "weaponPosition": "rifler",
+      "riflerRole": "entry",
+      "stats": {
+        "aim": 98,
+        "utility": 78,
+        "movement": 96,
+        "mental": 70,
+        "composure": 87
+      },
+      "weapons": [
+        {
+          "weapon": "glock_18",
+          "stars": 5
+        },
+        {
+          "weapon": "usp_s",
+          "stars": 4
+        },
+        {
+          "weapon": "dual_berettas",
+          "stars": 4
+        },
+        {
+          "weapon": "tec_9",
+          "stars": 5
+        },
+        {
+          "weapon": "five_seven",
+          "stars": 4
+        },
+        {
+          "weapon": "desert_eagle",
+          "stars": 5
+        },
+        {
+          "weapon": "mac_10",
+          "stars": 5
+        },
+        {
+          "weapon": "mp9",
+          "stars": 5
+        },
+        {
+          "weapon": "mp7",
+          "stars": 4
+        },
+        {
+          "weapon": "pp_bizon",
+          "stars": 3
+        },
+        {
+          "weapon": "ump_45",
+          "stars": 3
+        },
+        {
+          "weapon": "galil_ar",
+          "stars": 5
+        },
+        {
+          "weapon": "famas",
+          "stars": 4
+        },
+        {
+          "weapon": "ak_47",
+          "stars": 5
+        },
+        {
+          "weapon": "m4a1_s",
+          "stars": 5
+        },
+        {
+          "weapon": "sg_553",
+          "stars": 4
+        },
+        {
+          "weapon": "aug",
+          "stars": 4
+        },
+        {
+          "weapon": "awp",
+          "stars": 2
+        }
+      ]
+    },
+    {
+      "id": "spirit_sh1ro",
+      "teamId": "spirit",
+      "handle": "sh1ro",
+      "weaponPosition": "awper",
+      "riflerRole": null,
+      "stats": {
+        "aim": 94,
+        "utility": 85,
+        "movement": 85,
+        "mental": 76,
+        "composure": 97
+      },
+      "weapons": [
+        {
+          "weapon": "glock_18",
+          "stars": 4
+        },
+        {
+          "weapon": "usp_s",
+          "stars": 5
+        },
+        {
+          "weapon": "dual_berettas",
+          "stars": 3
+        },
+        {
+          "weapon": "tec_9",
+          "stars": 4
+        },
+        {
+          "weapon": "five_seven",
+          "stars": 4
+        },
+        {
+          "weapon": "desert_eagle",
+          "stars": 4
+        },
+        {
+          "weapon": "mac_10",
+          "stars": 3
+        },
+        {
+          "weapon": "mp9",
+          "stars": 3
+        },
+        {
+          "weapon": "mp7",
+          "stars": 3
+        },
+        {
+          "weapon": "pp_bizon",
+          "stars": 2
+        },
+        {
+          "weapon": "ump_45",
+          "stars": 3
+        },
+        {
+          "weapon": "galil_ar",
+          "stars": 4
+        },
+        {
+          "weapon": "famas",
+          "stars": 4
+        },
+        {
+          "weapon": "ak_47",
+          "stars": 4
+        },
+        {
+          "weapon": "m4a1_s",
+          "stars": 4
+        },
+        {
+          "weapon": "sg_553",
+          "stars": 3
+        },
+        {
+          "weapon": "aug",
+          "stars": 4
+        },
+        {
+          "weapon": "awp",
+          "stars": 5
+        }
+      ]
+    },
+    {
+      "id": "spirit_magixx",
+      "teamId": "spirit",
+      "handle": "magixx",
+      "weaponPosition": "rifler",
+      "riflerRole": "anchor_lurker",
+      "stats": {
+        "aim": 79,
+        "utility": 91,
+        "movement": 79,
+        "mental": 89,
+        "composure": 91
+      },
+      "weapons": [
+        {
+          "weapon": "glock_18",
+          "stars": 4
+        },
+        {
+          "weapon": "usp_s",
+          "stars": 4
+        },
+        {
+          "weapon": "dual_berettas",
+          "stars": 4
+        },
+        {
+          "weapon": "tec_9",
+          "stars": 4
+        },
+        {
+          "weapon": "five_seven",
+          "stars": 4
+        },
+        {
+          "weapon": "desert_eagle",
+          "stars": 4
+        },
+        {
+          "weapon": "mac_10",
+          "stars": 4
+        },
+        {
+          "weapon": "mp9",
+          "stars": 4
+        },
+        {
+          "weapon": "mp7",
+          "stars": 4
+        },
+        {
+          "weapon": "pp_bizon",
+          "stars": 3
+        },
+        {
+          "weapon": "ump_45",
+          "stars": 4
+        },
+        {
+          "weapon": "galil_ar",
+          "stars": 4
+        },
+        {
+          "weapon": "famas",
+          "stars": 4
+        },
+        {
+          "weapon": "ak_47",
+          "stars": 4
+        },
+        {
+          "weapon": "m4a1_s",
+          "stars": 5
+        },
+        {
+          "weapon": "sg_553",
+          "stars": 3
+        },
+        {
+          "weapon": "aug",
+          "stars": 4
+        },
+        {
+          "weapon": "awp",
+          "stars": 2
+        }
+      ]
+    },
+    {
+      "id": "spirit_tN1R",
+      "teamId": "spirit",
+      "handle": "tN1R",
+      "weaponPosition": "rifler",
+      "riflerRole": "entry",
+      "stats": {
+        "aim": 88,
+        "utility": 81,
+        "movement": 88,
+        "mental": 65,
+        "composure": 83
+      },
+      "weapons": [
+        {
+          "weapon": "glock_18",
+          "stars": 4
+        },
+        {
+          "weapon": "usp_s",
+          "stars": 4
+        },
+        {
+          "weapon": "dual_berettas",
+          "stars": 3
+        },
+        {
+          "weapon": "tec_9",
+          "stars": 4
+        },
+        {
+          "weapon": "five_seven",
+          "stars": 4
+        },
+        {
+          "weapon": "desert_eagle",
+          "stars": 4
+        },
+        {
+          "weapon": "mac_10",
+          "stars": 4
+        },
+        {
+          "weapon": "mp9",
+          "stars": 4
+        },
+        {
+          "weapon": "mp7",
+          "stars": 4
+        },
+        {
+          "weapon": "pp_bizon",
+          "stars": 3
+        },
+        {
+          "weapon": "ump_45",
+          "stars": 3
+        },
+        {
+          "weapon": "galil_ar",
+          "stars": 4
+        },
+        {
+          "weapon": "famas",
+          "stars": 4
+        },
+        {
+          "weapon": "ak_47",
+          "stars": 5
+        },
+        {
+          "weapon": "m4a1_s",
+          "stars": 4
+        },
+        {
+          "weapon": "sg_553",
+          "stars": 3
+        },
+        {
+          "weapon": "aug",
+          "stars": 3
+        },
+        {
+          "weapon": "awp",
+          "stars": 2
+        }
+      ]
+    },
+    {
+      "id": "spirit_zont1x",
+      "teamId": "spirit",
+      "handle": "zont1x",
+      "weaponPosition": "rifler",
+      "riflerRole": "anchor_lurker",
+      "stats": {
+        "aim": 85,
+        "utility": 89,
+        "movement": 81,
+        "mental": 69,
+        "composure": 93
+      },
+      "weapons": [
+        {
+          "weapon": "glock_18",
+          "stars": 4
+        },
+        {
+          "weapon": "usp_s",
+          "stars": 5
+        },
+        {
+          "weapon": "dual_berettas",
+          "stars": 4
+        },
+        {
+          "weapon": "tec_9",
+          "stars": 4
+        },
+        {
+          "weapon": "five_seven",
+          "stars": 4
+        },
+        {
+          "weapon": "desert_eagle",
+          "stars": 4
+        },
+        {
+          "weapon": "mac_10",
+          "stars": 4
+        },
+        {
+          "weapon": "mp9",
+          "stars": 4
+        },
+        {
+          "weapon": "mp7",
+          "stars": 4
+        },
+        {
+          "weapon": "pp_bizon",
+          "stars": 3
+        },
+        {
+          "weapon": "ump_45",
+          "stars": 4
+        },
+        {
+          "weapon": "galil_ar",
+          "stars": 4
+        },
+        {
+          "weapon": "famas",
+          "stars": 5
+        },
+        {
+          "weapon": "ak_47",
+          "stars": 4
+        },
+        {
+          "weapon": "m4a1_s",
+          "stars": 5
+        },
+        {
+          "weapon": "sg_553",
+          "stars": 4
+        },
+        {
+          "weapon": "aug",
+          "stars": 4
+        },
+        {
+          "weapon": "awp",
+          "stars": 2
+        }
+      ]
+    },
+    {
+      "id": "falcons_NiKo",
+      "teamId": "falcons",
+      "handle": "NiKo",
+      "weaponPosition": "rifler",
+      "riflerRole": "anchor_lurker",
+      "stats": {
+        "aim": 97,
+        "utility": 86,
+        "movement": 89,
+        "mental": 84,
+        "composure": 90
+      },
+      "weapons": [
+        {
+          "weapon": "glock_18",
+          "stars": 5
+        },
+        {
+          "weapon": "usp_s",
+          "stars": 5
+        },
+        {
+          "weapon": "dual_berettas",
+          "stars": 4
+        },
+        {
+          "weapon": "tec_9",
+          "stars": 5
+        },
+        {
+          "weapon": "five_seven",
+          "stars": 5
+        },
+        {
+          "weapon": "desert_eagle",
+          "stars": 5
+        },
+        {
+          "weapon": "mac_10",
+          "stars": 4
+        },
+        {
+          "weapon": "mp9",
+          "stars": 4
+        },
+        {
+          "weapon": "mp7",
+          "stars": 4
+        },
+        {
+          "weapon": "pp_bizon",
+          "stars": 3
+        },
+        {
+          "weapon": "ump_45",
+          "stars": 4
+        },
+        {
+          "weapon": "galil_ar",
+          "stars": 5
+        },
+        {
+          "weapon": "famas",
+          "stars": 4
+        },
+        {
+          "weapon": "ak_47",
+          "stars": 5
+        },
+        {
+          "weapon": "m4a1_s",
+          "stars": 5
+        },
+        {
+          "weapon": "sg_553",
+          "stars": 4
+        },
+        {
+          "weapon": "aug",
+          "stars": 4
+        },
+        {
+          "weapon": "awp",
+          "stars": 3
+        }
+      ]
+    },
+    {
+      "id": "falcons_m0NESY",
+      "teamId": "falcons",
+      "handle": "m0NESY",
+      "weaponPosition": "awper",
+      "riflerRole": null,
+      "stats": {
+        "aim": 97,
+        "utility": 81,
+        "movement": 96,
+        "mental": 72,
+        "composure": 92
+      },
+      "weapons": [
+        {
+          "weapon": "glock_18",
+          "stars": 5
+        },
+        {
+          "weapon": "usp_s",
+          "stars": 5
+        },
+        {
+          "weapon": "dual_berettas",
+          "stars": 4
+        },
+        {
+          "weapon": "tec_9",
+          "stars": 4
+        },
+        {
+          "weapon": "five_seven",
+          "stars": 4
+        },
+        {
+          "weapon": "desert_eagle",
+          "stars": 5
+        },
+        {
+          "weapon": "mac_10",
+          "stars": 4
+        },
+        {
+          "weapon": "mp9",
+          "stars": 4
+        },
+        {
+          "weapon": "mp7",
+          "stars": 4
+        },
+        {
+          "weapon": "pp_bizon",
+          "stars": 2
+        },
+        {
+          "weapon": "ump_45",
+          "stars": 3
+        },
+        {
+          "weapon": "galil_ar",
+          "stars": 4
+        },
+        {
+          "weapon": "famas",
+          "stars": 4
+        },
+        {
+          "weapon": "ak_47",
+          "stars": 5
+        },
+        {
+          "weapon": "m4a1_s",
+          "stars": 4
+        },
+        {
+          "weapon": "sg_553",
+          "stars": 4
+        },
+        {
+          "weapon": "aug",
+          "stars": 4
+        },
+        {
+          "weapon": "awp",
+          "stars": 5
+        }
+      ]
+    },
+    {
+      "id": "falcons_TeSeS",
+      "teamId": "falcons",
+      "handle": "TeSeS",
+      "weaponPosition": "rifler",
+      "riflerRole": "anchor_lurker",
+      "stats": {
+        "aim": 84,
+        "utility": 91,
+        "movement": 85,
+        "mental": 74,
+        "composure": 89
+      },
+      "weapons": [
+        {
+          "weapon": "glock_18",
+          "stars": 4
+        },
+        {
+          "weapon": "usp_s",
+          "stars": 4
+        },
+        {
+          "weapon": "dual_berettas",
+          "stars": 4
+        },
+        {
+          "weapon": "tec_9",
+          "stars": 4
+        },
+        {
+          "weapon": "five_seven",
+          "stars": 5
+        },
+        {
+          "weapon": "desert_eagle",
+          "stars": 4
+        },
+        {
+          "weapon": "mac_10",
+          "stars": 5
+        },
+        {
+          "weapon": "mp9",
+          "stars": 5
+        },
+        {
+          "weapon": "mp7",
+          "stars": 4
+        },
+        {
+          "weapon": "pp_bizon",
+          "stars": 3
+        },
+        {
+          "weapon": "ump_45",
+          "stars": 4
+        },
+        {
+          "weapon": "galil_ar",
+          "stars": 4
+        },
+        {
+          "weapon": "famas",
+          "stars": 4
+        },
+        {
+          "weapon": "ak_47",
+          "stars": 4
+        },
+        {
+          "weapon": "m4a1_s",
+          "stars": 5
+        },
+        {
+          "weapon": "sg_553",
+          "stars": 4
+        },
+        {
+          "weapon": "aug",
+          "stars": 4
+        },
+        {
+          "weapon": "awp",
+          "stars": 2
+        }
+      ]
+    },
+    {
+      "id": "falcons_kyousuke",
+      "teamId": "falcons",
+      "handle": "kyousuke",
+      "weaponPosition": "rifler",
+      "riflerRole": "entry",
+      "stats": {
+        "aim": 94,
+        "utility": 77,
+        "movement": 94,
+        "mental": 61,
+        "composure": 81
+      },
+      "weapons": [
+        {
+          "weapon": "glock_18",
+          "stars": 4
+        },
+        {
+          "weapon": "usp_s",
+          "stars": 4
+        },
+        {
+          "weapon": "dual_berettas",
+          "stars": 4
+        },
+        {
+          "weapon": "tec_9",
+          "stars": 5
+        },
+        {
+          "weapon": "five_seven",
+          "stars": 4
+        },
+        {
+          "weapon": "desert_eagle",
+          "stars": 5
+        },
+        {
+          "weapon": "mac_10",
+          "stars": 5
+        },
+        {
+          "weapon": "mp9",
+          "stars": 5
+        },
+        {
+          "weapon": "mp7",
+          "stars": 4
+        },
+        {
+          "weapon": "pp_bizon",
+          "stars": 3
+        },
+        {
+          "weapon": "ump_45",
+          "stars": 3
+        },
+        {
+          "weapon": "galil_ar",
+          "stars": 5
+        },
+        {
+          "weapon": "famas",
+          "stars": 4
+        },
+        {
+          "weapon": "ak_47",
+          "stars": 5
+        },
+        {
+          "weapon": "m4a1_s",
+          "stars": 5
+        },
+        {
+          "weapon": "sg_553",
+          "stars": 3
+        },
+        {
+          "weapon": "aug",
+          "stars": 3
+        },
+        {
+          "weapon": "awp",
+          "stars": 2
+        }
+      ]
+    },
+    {
+      "id": "falcons_karrigan",
+      "teamId": "falcons",
+      "handle": "karrigan",
+      "weaponPosition": "rifler",
+      "riflerRole": "entry",
+      "stats": {
+        "aim": 72,
+        "utility": 94,
+        "movement": 78,
+        "mental": 98,
+        "composure": 90
+      },
+      "weapons": [
+        {
+          "weapon": "glock_18",
+          "stars": 4
+        },
+        {
+          "weapon": "usp_s",
+          "stars": 4
+        },
+        {
+          "weapon": "dual_berettas",
+          "stars": 4
+        },
+        {
+          "weapon": "tec_9",
+          "stars": 4
+        },
+        {
+          "weapon": "five_seven",
+          "stars": 4
+        },
+        {
+          "weapon": "desert_eagle",
+          "stars": 3
+        },
+        {
+          "weapon": "mac_10",
+          "stars": 4
+        },
+        {
+          "weapon": "mp9",
+          "stars": 4
+        },
+        {
+          "weapon": "mp7",
+          "stars": 4
+        },
+        {
+          "weapon": "pp_bizon",
+          "stars": 3
+        },
+        {
+          "weapon": "ump_45",
+          "stars": 4
+        },
+        {
+          "weapon": "galil_ar",
+          "stars": 4
+        },
+        {
+          "weapon": "famas",
+          "stars": 4
+        },
+        {
+          "weapon": "ak_47",
+          "stars": 4
+        },
+        {
+          "weapon": "m4a1_s",
+          "stars": 4
+        },
+        {
+          "weapon": "sg_553",
+          "stars": 3
+        },
+        {
+          "weapon": "aug",
+          "stars": 3
+        },
+        {
+          "weapon": "awp",
+          "stars": 2
+        }
+      ]
+    },
+    {
+      "id": "mongolz_blitz",
+      "teamId": "mongolz",
+      "handle": "bLitz",
+      "weaponPosition": "rifler",
+      "riflerRole": "entry",
+      "stats": {
+        "composure": 88,
+        "movement": 85,
+        "utility": 90,
+        "mental": 92,
+        "aim": 83
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 86,
+      "recentFormAdjustment": -3
+    },
+    {
+      "id": "mongolz_910",
+      "teamId": "mongolz",
+      "handle": "910",
+      "weaponPosition": "awper",
+      "riflerRole": "",
+      "stats": {
+        "composure": 88,
+        "movement": 83,
+        "utility": 80,
+        "mental": 73,
+        "aim": 86
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 5,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 89,
+      "recentFormAdjustment": -3
+    },
+    {
+      "id": "mongolz_cobrazera",
+      "teamId": "mongolz",
+      "handle": "cobrazera",
+      "weaponPosition": "rifler",
+      "riflerRole": "anchor_lurker",
+      "stats": {
+        "composure": 91,
+        "movement": 76,
+        "utility": 86,
+        "mental": 72,
+        "aim": 79
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 82,
+      "recentFormAdjustment": -3
+    },
+    {
+      "id": "mongolz_tikuak",
+      "teamId": "mongolz",
+      "handle": "tikuak",
+      "weaponPosition": "rifler",
+      "riflerRole": "entry",
+      "stats": {
+        "composure": 82,
+        "movement": 76,
+        "utility": 80,
+        "mental": 65,
+        "aim": 74
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 77,
+      "recentFormAdjustment": -3
+    },
+    {
+      "id": "mongolz_darkmeister",
+      "teamId": "mongolz",
+      "handle": "DarkMeister",
+      "weaponPosition": "rifler",
+      "riflerRole": "anchor_lurker",
+      "stats": {
+        "composure": 91,
+        "movement": 71,
+        "utility": 86,
+        "mental": 65,
+        "aim": 74
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 77,
+      "recentFormAdjustment": -3
+    },
+    {
+      "id": "vitality_apex",
+      "teamId": "vitality",
+      "handle": "apEX",
+      "weaponPosition": "rifler",
+      "riflerRole": "entry",
+      "stats": {
+        "composure": 88,
+        "movement": 85,
+        "utility": 90,
+        "mental": 97,
+        "aim": 83
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 83,
+      "recentFormAdjustment": 0
+    },
+    {
+      "id": "vitality_zywoo",
+      "teamId": "vitality",
+      "handle": "ZywOo",
+      "weaponPosition": "awper",
+      "riflerRole": "",
+      "stats": {
+        "composure": 88,
+        "movement": 95,
+        "utility": 80,
+        "mental": 82,
+        "aim": 98
+      },
+      "weapons": [
+        {
+          "stars": 5,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 5,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 5,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 5,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 5,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 5,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 98,
+      "recentFormAdjustment": 0
+    },
+    {
+      "id": "vitality_flamez",
+      "teamId": "vitality",
+      "handle": "flameZ",
+      "weaponPosition": "rifler",
+      "riflerRole": "entry",
+      "stats": {
+        "composure": 82,
+        "movement": 94,
+        "utility": 80,
+        "mental": 76,
+        "aim": 92
+      },
+      "weapons": [
+        {
+          "stars": 5,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 5,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 5,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 5,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 5,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 5,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 5,
+          "weapon": "famas"
+        },
+        {
+          "stars": 5,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 5,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 5,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 5,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 92,
+      "recentFormAdjustment": 0
+    },
+    {
+      "id": "vitality_ropz",
+      "teamId": "vitality",
+      "handle": "ropz",
+      "weaponPosition": "rifler",
+      "riflerRole": "anchor_lurker",
+      "stats": {
+        "composure": 91,
+        "movement": 91,
+        "utility": 86,
+        "mental": 77,
+        "aim": 94
+      },
+      "weapons": [
+        {
+          "stars": 5,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 5,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 5,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 5,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 5,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 5,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 5,
+          "weapon": "famas"
+        },
+        {
+          "stars": 5,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 5,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 5,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 5,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 94,
+      "recentFormAdjustment": 0
+    },
+    {
+      "id": "vitality_mezii",
+      "teamId": "vitality",
+      "handle": "mezii",
+      "weaponPosition": "rifler",
+      "riflerRole": "anchor_lurker",
+      "stats": {
+        "composure": 91,
+        "movement": 84,
+        "utility": 86,
+        "mental": 75,
+        "aim": 87
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 87,
+      "recentFormAdjustment": 0
+    },
+    {
+      "id": "aurora_xantares",
+      "teamId": "aurora",
+      "handle": "XANTARES",
+      "weaponPosition": "rifler",
+      "riflerRole": "entry",
+      "stats": {
+        "composure": 82,
+        "movement": 96,
+        "utility": 80,
+        "mental": 80,
+        "aim": 94
+      },
+      "weapons": [
+        {
+          "stars": 5,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 5,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 5,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 5,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 5,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 5,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 5,
+          "weapon": "famas"
+        },
+        {
+          "stars": 5,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 5,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 5,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 5,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 95,
+      "recentFormAdjustment": -1
+    },
+    {
+      "id": "aurora_woxic",
+      "teamId": "aurora",
+      "handle": "woxic",
+      "weaponPosition": "awper",
+      "riflerRole": "",
+      "stats": {
+        "composure": 88,
+        "movement": 83,
+        "utility": 80,
+        "mental": 79,
+        "aim": 86
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 5,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 87,
+      "recentFormAdjustment": -1
+    },
+    {
+      "id": "aurora_jimpphat",
+      "teamId": "aurora",
+      "handle": "Jimpphat",
+      "weaponPosition": "rifler",
+      "riflerRole": "anchor_lurker",
+      "stats": {
+        "composure": 91,
+        "movement": 87,
+        "utility": 86,
+        "mental": 73,
+        "aim": 90
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 5,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 5,
+          "weapon": "famas"
+        },
+        {
+          "stars": 5,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 5,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 5,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 5,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 91,
+      "recentFormAdjustment": -1
+    },
+    {
+      "id": "aurora_kyxsan",
+      "teamId": "aurora",
+      "handle": "kyxsan",
+      "weaponPosition": "rifler",
+      "riflerRole": "entry",
+      "stats": {
+        "composure": 88,
+        "movement": 83,
+        "utility": 90,
+        "mental": 91,
+        "aim": 81
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 82,
+      "recentFormAdjustment": -1
+    },
+    {
+      "id": "aurora_wicadia",
+      "teamId": "aurora",
+      "handle": "Wicadia",
+      "weaponPosition": "rifler",
+      "riflerRole": "anchor_lurker",
+      "stats": {
+        "composure": 91,
+        "movement": 86,
+        "utility": 86,
+        "mental": 74,
+        "aim": 89
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 90,
+      "recentFormAdjustment": -1
+    },
+    {
+      "id": "furia_fallen",
+      "teamId": "furia",
+      "handle": "FalleN",
+      "weaponPosition": "rifler",
+      "riflerRole": "anchor_lurker",
+      "stats": {
+        "composure": 91,
+        "movement": 77,
+        "utility": 90,
+        "mental": 97,
+        "aim": 80
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 81,
+      "recentFormAdjustment": -1
+    },
+    {
+      "id": "furia_kscerato",
+      "teamId": "furia",
+      "handle": "KSCERATO",
+      "weaponPosition": "rifler",
+      "riflerRole": "anchor_lurker",
+      "stats": {
+        "composure": 91,
+        "movement": 91,
+        "utility": 86,
+        "mental": 80,
+        "aim": 94
+      },
+      "weapons": [
+        {
+          "stars": 5,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 5,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 5,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 5,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 5,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 5,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 5,
+          "weapon": "famas"
+        },
+        {
+          "stars": 5,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 5,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 5,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 5,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 95,
+      "recentFormAdjustment": -1
+    },
+    {
+      "id": "furia_yuurih",
+      "teamId": "furia",
+      "handle": "yuurih",
+      "weaponPosition": "rifler",
+      "riflerRole": "anchor_lurker",
+      "stats": {
+        "composure": 91,
+        "movement": 86,
+        "utility": 86,
+        "mental": 77,
+        "aim": 89
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 90,
+      "recentFormAdjustment": -1
+    },
+    {
+      "id": "furia_yekindar",
+      "teamId": "furia",
+      "handle": "YEKINDAR",
+      "weaponPosition": "rifler",
+      "riflerRole": "entry",
+      "stats": {
+        "composure": 82,
+        "movement": 89,
+        "utility": 80,
+        "mental": 81,
+        "aim": 87
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 88,
+      "recentFormAdjustment": -1
+    },
+    {
+      "id": "furia_molodoy",
+      "teamId": "furia",
+      "handle": "molodoy",
+      "weaponPosition": "awper",
+      "riflerRole": "",
+      "stats": {
+        "composure": 88,
+        "movement": 88,
+        "utility": 80,
+        "mental": 73,
+        "aim": 91
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 5,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 92,
+      "recentFormAdjustment": -1
+    },
+    {
+      "id": "mouz_torzsi",
+      "teamId": "mouz",
+      "handle": "torzsi",
+      "weaponPosition": "awper",
+      "riflerRole": "",
+      "stats": {
+        "composure": 88,
+        "movement": 88,
+        "utility": 80,
+        "mental": 78,
+        "aim": 91
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 5,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 89,
+      "recentFormAdjustment": 2
+    },
+    {
+      "id": "mouz_spinx",
+      "teamId": "mouz",
+      "handle": "Spinx",
+      "weaponPosition": "rifler",
+      "riflerRole": "anchor_lurker",
+      "stats": {
+        "composure": 91,
+        "movement": 90,
+        "utility": 86,
+        "mental": 79,
+        "aim": 93
+      },
+      "weapons": [
+        {
+          "stars": 5,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 5,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 5,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 5,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 5,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 5,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 5,
+          "weapon": "famas"
+        },
+        {
+          "stars": 5,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 5,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 5,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 5,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 91,
+      "recentFormAdjustment": 2
+    },
+    {
+      "id": "mouz_xertion",
+      "teamId": "mouz",
+      "handle": "xertioN",
+      "weaponPosition": "rifler",
+      "riflerRole": "entry",
+      "stats": {
+        "composure": 88,
+        "movement": 92,
+        "utility": 90,
+        "mental": 91,
+        "aim": 90
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 5,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 5,
+          "weapon": "famas"
+        },
+        {
+          "stars": 5,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 5,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 5,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 5,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 88,
+      "recentFormAdjustment": 2
+    },
+    {
+      "id": "mouz_pr",
+      "teamId": "mouz",
+      "handle": "PR",
+      "weaponPosition": "rifler",
+      "riflerRole": "anchor_lurker",
+      "stats": {
+        "composure": 91,
+        "movement": 82,
+        "utility": 86,
+        "mental": 72,
+        "aim": 85
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 83,
+      "recentFormAdjustment": 2
+    },
+    {
+      "id": "mouz_xelex",
+      "teamId": "mouz",
+      "handle": "xelex",
+      "weaponPosition": "rifler",
+      "riflerRole": "entry",
+      "stats": {
+        "composure": 82,
+        "movement": 89,
+        "utility": 80,
+        "mental": 68,
+        "aim": 87
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 85,
+      "recentFormAdjustment": 2
+    },
+    {
+      "id": "fut_krabeni",
+      "teamId": "fut",
+      "handle": "Krabeni",
+      "weaponPosition": "rifler",
+      "riflerRole": "entry",
+      "stats": {
+        "composure": 88,
+        "movement": 87,
+        "utility": 90,
+        "mental": 90,
+        "aim": 85
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 84,
+      "recentFormAdjustment": 1
+    },
+    {
+      "id": "fut_cmtry",
+      "teamId": "fut",
+      "handle": "cmtry",
+      "weaponPosition": "awper",
+      "riflerRole": "",
+      "stats": {
+        "composure": 88,
+        "movement": 82,
+        "utility": 80,
+        "mental": 70,
+        "aim": 85
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 5,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 84,
+      "recentFormAdjustment": 1
+    },
+    {
+      "id": "fut_dem0n",
+      "teamId": "fut",
+      "handle": "dem0n",
+      "weaponPosition": "rifler",
+      "riflerRole": "entry",
+      "stats": {
+        "composure": 82,
+        "movement": 92,
+        "utility": 80,
+        "mental": 74,
+        "aim": 90
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 5,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 5,
+          "weapon": "famas"
+        },
+        {
+          "stars": 5,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 5,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 5,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 5,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 89,
+      "recentFormAdjustment": 1
+    },
+    {
+      "id": "fut_dziugss",
+      "teamId": "fut",
+      "handle": "dziugss",
+      "weaponPosition": "rifler",
+      "riflerRole": "anchor_lurker",
+      "stats": {
+        "composure": 91,
+        "movement": 85,
+        "utility": 86,
+        "mental": 73,
+        "aim": 88
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 87,
+      "recentFormAdjustment": 1
+    },
+    {
+      "id": "fut_xfl0ud",
+      "teamId": "fut",
+      "handle": "xfl0ud",
+      "weaponPosition": "rifler",
+      "riflerRole": "anchor_lurker",
+      "stats": {
+        "composure": 91,
+        "movement": 85,
+        "utility": 86,
+        "mental": 84,
+        "aim": 88
+      },
+      "weapons": [
+        {
+          "stars": 4,
+          "weapon": "glock_18"
+        },
+        {
+          "stars": 4,
+          "weapon": "usp_s"
+        },
+        {
+          "stars": 3,
+          "weapon": "dual_berettas"
+        },
+        {
+          "stars": 4,
+          "weapon": "tec_9"
+        },
+        {
+          "stars": 4,
+          "weapon": "five_seven"
+        },
+        {
+          "stars": 4,
+          "weapon": "desert_eagle"
+        },
+        {
+          "stars": 3,
+          "weapon": "mac_10"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp9"
+        },
+        {
+          "stars": 3,
+          "weapon": "mp7"
+        },
+        {
+          "stars": 3,
+          "weapon": "pp_bizon"
+        },
+        {
+          "stars": 3,
+          "weapon": "ump_45"
+        },
+        {
+          "stars": 4,
+          "weapon": "galil_ar"
+        },
+        {
+          "stars": 4,
+          "weapon": "famas"
+        },
+        {
+          "stars": 4,
+          "weapon": "ak_47"
+        },
+        {
+          "stars": 4,
+          "weapon": "m4a1_s"
+        },
+        {
+          "stars": 4,
+          "weapon": "sg_553"
+        },
+        {
+          "stars": 4,
+          "weapon": "aug"
+        },
+        {
+          "stars": 2,
+          "weapon": "awp"
+        }
+      ],
+      "ratingNote": "Game design estimate, not a measured HLTV attribute. Role baseline plus documented recent team-form adjustment.",
+      "aimBaseline": 87,
+      "recentFormAdjustment": 1
+    }
+  ]
+}

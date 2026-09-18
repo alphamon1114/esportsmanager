@@ -41,8 +41,10 @@ namespace FpsManager
   {
    float enter=0,exit=1;return Slab(a.x,b.x-a.x,r.xMin,r.xMax,ref enter,ref exit)&&Slab(a.y,b.y-a.y,r.yMin,r.yMax,ref enter,ref exit)&&Slab(ay,by-ay,bottom,top,ref enter,ref exit);
   }
+  public Func<Vector2,float,Vector2,float,bool> SightOverride;
   public bool Sight(Vector2 a,float ay,Vector2 b,float by)
   {
+   if(SightOverride!=null)return SightOverride(a,ay,b,by);
    foreach(var s in Solids)if(Intersects(s.area,s.bottom,s.top,a,ay,b,by))return false;return true;
   }
   public bool GroundClear(Vector2 a,Vector2 b)
@@ -59,9 +61,10 @@ namespace FpsManager
   bool TrackElevation(int i,int target,float distance,float dt,int aim)
   {
    if(FeetHeight==null)return true;
-   float desired=Mathf.Atan2(FeetHeight(target)-FeetHeight(i)-.65f,Mathf.Max(.01f,distance))/Mathf.Deg2Rad;
+   float targetHeight=PhysicalBullets?HumanHeight(i,target,dt,aim):FeetHeight(target)+1;
+   float desired=Mathf.Atan2(targetHeight-FeetHeight(i)-1.65f,Mathf.Max(.01f,distance))/Mathf.Deg2Rad;
    float change=(65+Mathf.Clamp01(aim/100f)*95)*dt;
-   aimElevation[i]+=Mathf.Clamp(desired-aimElevation[i],-change,change);
+   aimElevation[i]+=Mathf.Clamp((desired-aimElevation[i])*(PhysicalBullets?Mathf.Min(1,dt*9):1),-change,change);
    return Mathf.Abs(desired-aimElevation[i])<settings.fireAlignmentDegrees;
   }
   float ElevationError(int shooter,int target,float distance)

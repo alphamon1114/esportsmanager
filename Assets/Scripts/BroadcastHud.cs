@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 namespace FpsManager
 {
@@ -16,10 +16,11 @@ namespace FpsManager
   void HudText(Rect rect,string text,int size,Color color,bool bold=false)
   {
 #if UNITY_5_3_OR_NEWER
+   text=Ui(text);
    int key=size*2+(bold?1:0);GUIStyle style;
    if(!hudStyles.TryGetValue(key,out style))
    {style=new GUIStyle(GUI.skin.label){fontSize=size,fontStyle=bold?FontStyle.Bold:FontStyle.Normal,wordWrap=false};hudStyles.Add(key,style);}
-   style.normal.textColor=color;GUI.Label(rect,text,style);
+   if(menuFont!=null)style.font=menuFont;else style.font=GUI.skin.font;style.normal.textColor=color;GUI.Label(rect,text,style);
 #else
    GUI.Label(rect,text);
 #endif
@@ -35,7 +36,7 @@ namespace FpsManager
   bool HudButton(Rect area,string title,bool enabled=true,bool active=false)
   {
    HudPanel(area,active?new Color(.16f,.38f,.51f,.95f):new Color(.13f,.18f,.24f,enabled?.95f:.5f));
-   HudText(new Rect(area.x+12,area.y+9,area.width-16,28),title,15,enabled?HudWhite:HudMuted,true);
+   HudText(new Rect(area.x+12,area.y+(area.height-22)*.5f,area.width-16,22),title,15,enabled?HudWhite:HudMuted,true);
    return enabled&&HudClick(area);
   }
   string WeaponLabel(int player) { return (HeldWeapon(player)=="knife"?"KNIFE":"")+(HeldWeapon(player)=="knife"&&AutomaticMatch?" / ":"")+(HeldWeapon(player)=="knife"&&!AutomaticMatch?"":combat.WeaponFor(player).id.Replace('_',' ').ToUpperInvariant()); }
@@ -45,7 +46,7 @@ namespace FpsManager
   }
   string PhaseLabel()
   {
-   if(!AutomaticMatch)return "READY TO START";
+   if(AwaitingMapStart||!AutomaticMatch)return "READY TO START";
    if(Stage==MatchStage.Live)return director.PlantedSite>=0?"BOMB  "+director.BombTimer.ToString("F0")+"s":"LIVE  "+Mathf.Max(0,roundSettings.roundSeconds-director.Clock).ToString("F0")+"s";
    if(Stage==MatchStage.Result)return Data.teams[LastRoundWinner].name.ToUpperInvariant()+" WINS  /  "+StageSeconds.ToString("F1")+"s";
    if(Stage==MatchStage.Finished)return "MAP WINNER: "+Data.teams[LastRoundWinner].name.ToUpperInvariant();
@@ -56,12 +57,15 @@ namespace FpsManager
    var matrix=GUI.matrix;
    GUI.matrix=Matrix4x4.Scale(new Vector3(Screen.width/1600f,Screen.height/900f,1));
    HudPanel(new Rect(0,0,1600,900),new Color(.025f,.035f,.052f));
+   if(PauseMenuOpen){DrawPauseMenu();GUI.matrix=matrix;return;}
+   if(menuPage!=0){DrawFrontMenu();GUI.matrix=matrix;return;}
+   if(tournamentBoard){DrawTournamentBoard();GUI.matrix=matrix;return;}
    if(Stage==MatchStage.Finished){DrawMatchResults();GUI.matrix=matrix;return;}
    var viewport=new Rect(16,80,1316,740);
    GUI.DrawTexture(viewport,eyeTexture,ScaleMode.StretchToFill);DrawUtilityPov(viewport);
    HudText(new Rect(660,435,24,32),"+",24,HudWhite);
    HudText(new Rect(22,15,350,30),"ESPORTS MANAGER",20,HudWhite,true);
-   HudText(new Rect(22,44,350,22),"INFERNO PROTOTYPE  /  LIVE OBSERVER",12,HudMuted);
+   HudText(new Rect(22,44,350,22),TournamentCaption(),12,HudMuted);
    HudPanel(new Rect(430,10,505,59),new Color(.09f,.13f,.19f));
    HudText(new Rect(449,17,180,25),Data.teams[ctTeam].name,17,HudBlue,true);
    HudText(new Rect(636,12,125,45),roundWins[ctTeam]+" : "+roundWins[1-ctTeam],30,HudWhite,true);
@@ -86,7 +90,7 @@ namespace FpsManager
    HudText(new Rect(290,827,1040,24),autonomy!=null&&autonomy.Radio!=null?"RADIO  "+autonomy.Radio:"Click a player card to change POV",14,HudMuted);
    string history="ROUND HISTORY   ";for(int i=Math.Max(0,roundWinners.Count-16);i<roundWinners.Count;i++)history+=(i+1)+":"+(roundWinners[i]==AlliedTeamIndex?"W":"L")+"  ";
    HudText(new Rect(30,863,1280,23),history,13,HudMuted);
-   DrawCoachPanel();
+   DrawCoachPanel();DrawTimeoutTalk();DrawMatchControls();
    if(showDebugInfo)HudText(new Rect(290,852,1010,22),"DEBUG  seed "+roundSeed+" / "+director.Objective(selected).task+" / target "+director.SiteName(director.TargetSite),12,HudGold);
    GUI.matrix=matrix;
   }
@@ -107,7 +111,7 @@ namespace FpsManager
     bool flash=Array.IndexOf(matchState[i].equipment,"flash")>=0,smoke=Array.IndexOf(matchState[i].equipment,"smoke")>=0;
     HudText(new Rect(x+10,y+40,211,18),"AR "+Mathf.RoundToInt(matchState[i].armor)+(matchState[i].helmet?" H ":" ")+AmmoLabel(i)+" "+(flash?"F"+MatchEconomy.UtilityCount(matchState[i],"flash")+" ":"")+(smoke?"S"+MatchEconomy.UtilityCount(matchState[i],"smoke"):""),10,HudMuted);
     var result=Statistics.Result(i);
-    HudText(new Rect(x+10,y+55,211,16),"K / D / A   "+result.kills+" / "+result.deaths+" / "+result.assists,10,alive?HudWhite:HudMuted);
+    HudText(new Rect(x+10,y+52,211,16),"K / D / A   "+result.kills+" / "+result.deaths+" / "+result.assists+"   "+ConditionLabel(i),10,alive?HudWhite:HudMuted);
     HudPanel(new Rect(x,y+69,224*Mathf.Clamp01(combat.Health(i)/100),3),alive?accent:HudMuted);
     if(HudClick(area))Select(i);
    }
@@ -116,6 +120,7 @@ namespace FpsManager
   {
    HudPanel(new Rect(map.x-3,map.y-3,map.width+6,map.height+6),new Color(.04f,.07f,.1f,.9f));
    GUI.DrawTexture(map,mapTexture,ScaleMode.StretchToFill);DrawUtilityMap(map);
+   if(sourceArena!=null)for(int site=0;site<2;site++){var mark=mapCamera.WorldToViewportPoint(World(layout.Sites[site],SiteFloor(site)));float x=map.x+mark.x*map.width,y=map.y+(1-mark.y)*map.height;var siteColor=site==0?HudGold:HudBlue;siteColor.a=RadarOpacity(SiteFloor(site));var labelColor=HudWhite;labelColor.a=siteColor.a;HudPanel(new Rect(x-9,y-9,20,20),siteColor);HudText(new Rect(x-6,y-9,20,20),site==0?"A":"B",13,labelColor,true);}
    for(int i=0;i<10;i++)
    {
     bool own=teamIndex[i]==AlliedTeamIndex;var contact=vision.Knowledge(AlliedTeamIndex,i);
@@ -123,38 +128,59 @@ namespace FpsManager
     Vector2 shown=own||!fogOfWar?MapPosition(i):contact.lastKnownPosition;
     var point=mapCamera.WorldToViewportPoint(World(shown));
     var area=new Rect(map.x+point.x*map.width-9,map.y+(1-point.y)*map.height-9,18,18);
-    HudPanel(area,teamIndex[i]==ctTeam?HudBlue:HudGold);
-    HudText(new Rect(area.x+3,area.y,20,20),(i+1).ToString(),11,new Color(.02f,.03f,.04f),true);
-    if(!fogOfWar&&PlayerHeight(i)>.4f)HudText(new Rect(area.x+17,area.y-6,55,18),"+"+PlayerHeight(i).ToString("F1"),10,HudWhite,true);
+    float opacity=own||!fogOfWar?RadarOpacity(PlayerHeight(i)):1;var markerColor=teamIndex[i]==ctTeam?HudBlue:HudGold;markerColor.a=opacity;
+    HudPanel(area,markerColor);
+    HudText(new Rect(area.x+3,area.y,20,20),(i+1).ToString(),11,new Color(.02f,.03f,.04f,opacity),true);
+    if(!fogOfWar&&(HasSourceFloors||PlayerHeight(i)>.4f))HudText(new Rect(area.x+17,area.y-6,55,18),HasSourceFloors?(PlayerHeight(i)<SourceFloorSplit?"1F":"2F"):"+"+PlayerHeight(i).ToString("F1"),10,new Color(HudWhite.r,HudWhite.g,HudWhite.b,opacity),true);
     if(HudClick(area))Select(i);
    }
+   DrawSourceFloorControl(map);
   }
   void DrawCoachPanel()
   {
+   // Floor selection controls the radar only; observation icons remain available.
    HudPanel(new Rect(1350,16,234,868),new Color(.055f,.08f,.115f));
    HudText(new Rect(1368,36,210,28),"COACH DESK",20,HudWhite,true);
-   HudText(new Rect(1368,70,210,26),"TEAM SPIRIT",14,HudBlue,true);
+   HudText(new Rect(1368,70,210,26),ComputerOnlyMatch?"AI vs AI":Data.teams[AlliedTeamIndex].name.ToUpperInvariant(),14,HudBlue,true);
    HudText(new Rect(1368,110,210,25),"MATCH CONTROL",12,HudMuted);
    if(!AutomaticMatch||Stage==MatchStage.Finished)
     if(HudButton(new Rect(1366,143,202,46),Stage==MatchStage.Finished?"START NEW MAP":"START MATCH"))StartMatch();
    if(AutomaticMatch&&Stage!=MatchStage.Finished)
    {
-    if(HudButton(new Rect(1366,143,202,46),TimeoutPending?"TIMEOUT QUEUED":"TIMEOUT  ("+TimeoutsRemaining+"/2)",TimeoutsRemaining>0&&!TimeoutPending&&Stage!=MatchStage.Timeout))RequestTimeout();
-    if(Stage==MatchStage.Timeout&&HudButton(new Rect(1366,199,202,42),"RESUME / BUY"))ResumeTimeout();
+    if(HudButton(new Rect(1366,143,202,46),TimeoutPending?"TIMEOUT QUEUED":"TIMEOUT  ("+TimeoutsRemaining+"/2)",!AwaitingMapStart&&!FastForwarding&&!ComputerOnlyMatch&&TimeoutsRemaining>0&&!TimeoutPending&&Stage!=MatchStage.Timeout))RequestTimeout();
+    if(Stage==MatchStage.Timeout&&HudButton(new Rect(1366,199,202,42),ComputerOnlyMatch?"AI TIMEOUT":OpponentTimeout?"OPPONENT TIMEOUT":"RESUME / BUY",!OpponentTimeout&&!ComputerOnlyMatch))ResumeTimeout();
    }
-   HudText(new Rect(1368,255,210,25),"OUR TEAM STRATEGY",12,HudMuted);
-   if(HudButton(new Rect(1366,289,202,44),"AGGRESSIVE",CanChangeStrategy,Strategy==TeamStrategy.Aggressive))ChangeStrategy(TeamStrategy.Aggressive);
-   if(HudButton(new Rect(1366,343,202,44),"BALANCED",CanChangeStrategy,Strategy==TeamStrategy.Balanced))ChangeStrategy(TeamStrategy.Balanced);
-   if(HudButton(new Rect(1366,397,202,44),"DEFENSIVE",CanChangeStrategy,Strategy==TeamStrategy.Defensive))ChangeStrategy(TeamStrategy.Defensive);
-   HudText(new Rect(1368,455,212,23),CanChangeStrategy?"Strategy changes available":"Locked / call a timeout",12,CanChangeStrategy?HudBlue:HudMuted);
-   HudText(new Rect(1368,492,215,22),"Timeout begins between rounds.",11,HudMuted);
+   if(!ComputerOnlyMatch){
+    bool defending=AlliedTeamIndex==ctTeam;
+    HudText(new Rect(1368,250,210,22),defending?"CT / DEFENSE":"T / ATTACK",12,HudMuted);
+    if(defending){
+     if(HudButton(new Rect(1366,275,202,25),"FORWARD",CanChangeStrategy,DefensePlan==DefenseTactic.Forward))ChangeDefense(DefenseTactic.Forward);
+     if(HudButton(new Rect(1366,303,202,25),"DEFAULT",CanChangeStrategy,DefensePlan==DefenseTactic.Default))ChangeDefense(DefenseTactic.Default);
+     if(HudButton(new Rect(1366,331,202,25),"STACK",CanChangeStrategy,DefensePlan==DefenseTactic.Stack))ChangeDefense(DefenseTactic.Stack);
+    }else{
+     if(HudButton(new Rect(1366,275,202,25),"RUSH",CanChangeStrategy,AttackPlan==AttackTactic.Rush))ChangeAttack(AttackTactic.Rush);
+     if(HudButton(new Rect(1366,303,202,25),"DEFAULT",CanChangeStrategy,AttackPlan==AttackTactic.Default))ChangeAttack(AttackTactic.Default);
+     if(HudButton(new Rect(1366,331,202,25),"MID PLAY",CanChangeStrategy,AttackPlan==AttackTactic.MidPlay))ChangeAttack(AttackTactic.MidPlay);
+    }
+   }
+   var selectedStats=EffectiveStats(selected);
+   HudText(new Rect(1368,376,212,22),ConditionDay??"",12,HudMuted);
+   HudText(new Rect(1368,399,212,22),(korean?"컨디션: ":"CONDITION: ")+ConditionLabel(selected),13,HudWhite);
+   HudText(new Rect(1368,422,212,22),(korean?"멘탈 ":"MENTAL ")+selectedStats.mental,12,HudMuted);
+   HudText(new Rect(1368,445,212,22),"AIM "+selectedStats.aim+" / COMP "+selectedStats.composure,12,HudBlue);
+   HudText(new Rect(1368,470,212,20),CanChangeStrategy?"Strategy changes available":"Locked until next buy phase",11,CanChangeStrategy?HudBlue:HudMuted);
+   HudText(new Rect(1368,492,215,22),OpponentTimeout?"Opponent coach is changing tactics.":"Timeout begins between rounds.",11,HudMuted);
    HudText(new Rect(1368,513,215,22),"BUY PLAN: "+TeamBuyPlan(AlliedTeamIndex).ToString().ToUpperInvariant(),11,HudMuted);
+   HudText(new Rect(1368,534,215,20),"OPPONENT TIMEOUTS: "+OpponentTimeoutsRemaining+"/2",11,HudMuted);
    HudText(new Rect(1368,554,210,24),"OBSERVER",12,HudMuted);
    if(HudButton(new Rect(1366,589,202,44),fogOfWar?"MAP: TEAM INTEL":"MAP: ALL PLAYERS"))fogOfWar=!fogOfWar;
    if(HudButton(new Rect(1366,643,202,44),showDebugInfo?"DEBUG: ON":"DEBUG: OFF"))showDebugInfo=!showDebugInfo;
+
    HudText(new Rect(1368,724,210,22),"F = FLASH  /  S = SMOKE",11,HudMuted);
    HudText(new Rect(1368,746,210,22),"MAGS = SPARE MAGAZINES",11,HudMuted);
    HudText(new Rect(1368,768,210,22),"AR = ARMOR / H = HELMET",11,HudMuted);
+   if((!AutomaticMatch||Stage==MatchStage.Finished)&&HudButton(new Rect(1366,798,202,34),"NEW TOURNAMENT"))OpenTeamSelection();
+   if((!AutomaticMatch||Stage==MatchStage.Finished)&&HudButton(new Rect(1366,839,202,34),"LOAD TOURNAMENT"))LoadTournament();
    if(preparationError!=null)HudText(new Rect(1368,810,210,55),preparationError,11,HudGold);
   }
  }

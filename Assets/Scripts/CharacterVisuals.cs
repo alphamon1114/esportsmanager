@@ -20,8 +20,8 @@ namespace FpsManager
                 characterAssetsLoaded=true;
             }
             if(ctCharacter==null&&tCharacter==null) return; // Keep the prototype usable without art assets.
-            mapCamera.cullingMask=~((1<<9)|(1<<10)|(1<<11)|(1<<12)|(1<<13));
-            eyeCamera.cullingMask=~((1<<8)|(1<<10)|(1<<12)|(1<<13));
+            mapCamera.cullingMask=sourceArena!=null?1<<14:~((1<<9)|(1<<10)|(1<<11)|(1<<12)|(1<<13)|(1<<14));
+            eyeCamera.cullingMask=~((1<<8)|(1<<10)|(1<<12)|(1<<13)|(1<<14));
             if(characterLight==null)
             {
                 var lamp=new GameObject("Character lighting");lamp.transform.SetParent(transform,false);
@@ -48,10 +48,11 @@ namespace FpsManager
                 actors[i].layer=10; // Tactical marker; the first-person camera excludes it.
                 bool living=combat==null||combat.Alive(i);
                 var root=characterVisuals[i].transform;
-                root.localPosition=new Vector3(0,living?-1f:-.72f,0);
+                root.localPosition=new Vector3(0,living?-1f-(IsCrouched(i)?.55f:0):-.72f,0);
+                var actorScale=actors[i].transform.localScale;root.localScale=new Vector3(1/actorScale.x,1/actorScale.y,1/actorScale.z);
                 root.localRotation=living?Quaternion.identity:Quaternion.Euler(90,0,0);
                 var animation=characterVisuals[i].GetComponent<CharacterAnimation>();
-                if(animation!=null){animation.SetState(living,HeldWeapon(i),side==0);animation.AimElevation=combat.AimElevation(i);}
+                if(animation!=null){animation.SetState(living,HeldWeapon(i),side==0);animation.AimElevation=combat.AimElevation(i);animation.Crouched=IsCrouched(i);}
                 foreach(var child in root.GetComponentsInChildren<Transform>(true)) child.gameObject.layer=i==selected?12:11;
             }
 #endif

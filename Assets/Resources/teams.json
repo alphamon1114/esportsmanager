@@ -29,7 +29,7 @@
         "aim": 98,
         "utility": 78,
         "movement": 96,
-        "charisma": 70,
+        "mental": 70,
         "composure": 87
       },
       "weapons": [
@@ -117,7 +117,7 @@
         "aim": 94,
         "utility": 85,
         "movement": 85,
-        "charisma": 76,
+        "mental": 76,
         "composure": 97
       },
       "weapons": [
@@ -205,7 +205,7 @@
         "aim": 79,
         "utility": 91,
         "movement": 79,
-        "charisma": 89,
+        "mental": 89,
         "composure": 91
       },
       "weapons": [
@@ -293,7 +293,7 @@
         "aim": 88,
         "utility": 81,
         "movement": 88,
-        "charisma": 65,
+        "mental": 65,
         "composure": 83
       },
       "weapons": [
@@ -381,7 +381,7 @@
         "aim": 85,
         "utility": 89,
         "movement": 81,
-        "charisma": 69,
+        "mental": 69,
         "composure": 93
       },
       "weapons": [
@@ -469,7 +469,7 @@
         "aim": 97,
         "utility": 86,
         "movement": 89,
-        "charisma": 84,
+        "mental": 84,
         "composure": 90
       },
       "weapons": [
@@ -557,7 +557,7 @@
         "aim": 97,
         "utility": 81,
         "movement": 96,
-        "charisma": 72,
+        "mental": 72,
         "composure": 92
       },
       "weapons": [
@@ -645,7 +645,7 @@
         "aim": 84,
         "utility": 91,
         "movement": 85,
-        "charisma": 74,
+        "mental": 74,
         "composure": 89
       },
       "weapons": [
@@ -733,7 +733,7 @@
         "aim": 94,
         "utility": 77,
         "movement": 94,
-        "charisma": 61,
+        "mental": 61,
         "composure": 81
       },
       "weapons": [
@@ -821,7 +821,7 @@
         "aim": 72,
         "utility": 94,
         "movement": 78,
-        "charisma": 98,
+        "mental": 98,
         "composure": 90
       },
       "weapons": [

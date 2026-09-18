@@ -66,7 +66,7 @@ namespace FpsManager
                 states[i].reaction=.2f+spamRandom[i].Next01()*.2f;
             }
             Vector2 line=spamPoint[i]-positions[i];
-            float offset=TurnTowards(ref facing[i],line,settings.turnDegreesPerSecond*dt);
+            float offset=UnifiedAim?SignedAngle(facing[i],line):TurnTowards(ref facing[i],line,settings.turnDegreesPerSecond*dt);
             float ready=Mathf.Max(states[i].reaction,states[i].cooldown);
             states[i].reaction=Mathf.Max(-dt,states[i].reaction-dt);
             // Hold fire for known friendly bodies, including beyond the guessed point.
@@ -83,6 +83,7 @@ namespace FpsManager
             SpamShots++; spamLeft[shooter]--;
             float angle=Mathf.Atan2(facing[shooter].y,facing[shooter].x)+horizontal*Mathf.Deg2Rad;
             Vector2 ray=new Vector2(Mathf.Cos(angle),Mathf.Sin(angle));
+            if(PhysicalBullets&&shotPositions!=null){float distance=Mathf.Max(1,Vector2.Distance(positions[shooter],spamPoint[shooter]));TracePlayers(shooter,ray,Mathf.Tan(aimElevation[shooter]*Mathf.Deg2Rad)+slope);return;}
             int victim=-1; float closest=55; HitRegion hit=HitRegion.Miss;
             // Physical collision only: actual positions never feed the suppression aim point.
             for(int target=0;target<count;target++)

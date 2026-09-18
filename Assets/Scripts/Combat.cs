@@ -84,6 +84,7 @@ namespace FpsManager
         public int SprayChoices { get; private set; }
         public int EvadeChoices { get; private set; }
         public Action<int> ShotFired, ReloadStarted, ShotMissed;
+        public Func<int,bool> ReloadAllowed;
         public Action<int,Vector2> VisualShot;
         public Action<int,int,float> DamageDealt;
         readonly int[] magazine=new int[10],spareMagazines=new int[10];
@@ -98,7 +99,7 @@ namespace FpsManager
         public bool Reloading(int i) { return reload[i]>0; }
         public void RequestReload(int i)
         {
-            if(!AmmoEnabled||!Alive(i)||reload[i]>0||magazine[i]>=WeaponFor(i).magazineSize||spareMagazines[i]<=0) return;
+            if(!AmmoEnabled||!Alive(i)||reload[i]>0||magazine[i]>=WeaponFor(i).magazineSize||spareMagazines[i]<=0||(ReloadAllowed!=null&&!ReloadAllowed(i))) return;
             // Commit the replacement once: discarded rounds cannot return to reserves.
             magazine[i]=0; spareMagazines[i]--; reload[i]=Math.Max(.01f,WeaponFor(i).reloadSeconds); if(ReloadStarted!=null) ReloadStarted(i);
         }
@@ -148,7 +149,8 @@ namespace FpsManager
 
         public void Reset(int seed)
         {
-            random = new DeterministicRandom(seed); ResetSpam(seed);
+            random = new DeterministicRandom(seed); ResetSpam(seed);System.Array.Clear(engagement,0,engagement.Length);
+            ResetPhysicalFire();ResetHumanAim(seed);
             Shots = Hits = Kills = Headshots = Bodyshots = SprayChoices = EvadeChoices = 0;
             for (int i = 0; i < count; i++)
             {
@@ -168,6 +170,7 @@ namespace FpsManager
         public bool Alive(int player) { return states[player].alive; }
         public float Health(int player) { return states[player].health; }
         public int KilledBy(int player) { return killer[player]; }
+        public Func<int,bool> InteractionBusy;
         public bool Engaging(int player) { return states[player].alive && (states[player].target >= 0 || Spamming(player)); }
 
         public void FillAlive(bool[] buffer)
@@ -197,6 +200,7 @@ namespace FpsManager
                 || arrived.Length != count || aimStat.Length != count)
                 throw new ArgumentException("Combat input length does not match the player count.");
 
+            if(PhysicalBullets){shotPositions=positions;shotTeams=team;}
             // Pass one: pick targets, turn, and work out when inside this tick each player
             // would be ready to shoot. Reaction and cooldown are kept as continuous
             // remainders rather than whole ticks, so two players are almost never ready at
@@ -208,7 +212,7 @@ namespace FpsManager
                 sinceShot[i]+=delta; fireHold[i]=Mathf.Max(0,fireHold[i]-delta);
                 if(sinceShot[i]>WeaponFor(i).recoilDelay) recoil[i]=Mathf.Max(0,recoil[i]-WeaponFor(i).recoilRecovery*delta);
                 if(recoil[i]<=0&&sinceShot[i]>.35f) { burstShots[i]=0; choseFollowup[i]=false; }
-                if(knifeOut[i]||WeaponFor(i).id=="unarmed") { states[i].target=-1; continue; }
+                if((InteractionBusy!=null&&InteractionBusy(i))||knifeOut[i]||WeaponFor(i).id=="unarmed") { states[i].target=-1; continue; }
                 if(AmmoEnabled&&states[i].alive)
                 {
                     if(reload[i]>0)
@@ -227,7 +231,8 @@ namespace FpsManager
                     continue;
                 }
 
-                int chosen = NearestSeen(i, positions, team, vision);
+                int chosen = UnifiedAim?FocusTarget(i):NearestSeen(i, positions, team, vision);
+                if(chosen>=0&&!states[chosen].alive)chosen=-1;
                 if (chosen != states[i].target)
                 {
                     states[i].target = chosen;
@@ -243,9 +248,11 @@ namespace FpsManager
                     continue;
                 }
 
+                if(UnifiedAim&&!vision.Sees(i,chosen))
+                {states[i].cooldown=Mathf.Max(-delta,states[i].cooldown-delta);states[i].reaction=Mathf.Max(-delta,states[i].reaction-delta);continue;}
                 Vector2 toTarget = positions[chosen] - positions[i];
                 float distance = toTarget.magnitude;
-                float offset = distance < .001f ? 0f : TurnTowards(ref facing[i], toTarget, settings.turnDegreesPerSecond * delta);
+                float offset = distance < .001f ? 0f : UnifiedAim?SignedAngle(facing[i],toTarget):TurnTowards(ref facing[i], toTarget, settings.turnDegreesPerSecond * delta);
                 bool verticalReady=TrackElevation(i,chosen,distance,delta,aimStat[i]);
                 float ready = Mathf.Max(states[i].reaction, states[i].cooldown);
                 bool fires = verticalReady && fireHold[i]<=0 && distance >= .001f && ready < delta
@@ -299,6 +306,11 @@ namespace FpsManager
         {
             float horizontal,baseHeight,slope;
             SampleShot(shooter,aimStat,out horizontal,out baseHeight,out slope);
+            if(PhysicalBullets&&shotPositions!=null){
+                var delta=shotPositions[target]-shotPositions[shooter];float angle=Mathf.Atan2(delta.y,delta.x)+(-aimOffsetDegrees+horizontal)*Mathf.Deg2Rad;
+                // Shoot along the actual pitch; never teleport a bullet up to a freshly chosen head point.
+                TracePlayers(shooter,new Vector2(Mathf.Cos(angle),Mathf.Sin(angle)),Mathf.Tan(aimElevation[shooter]*Mathf.Deg2Rad)+slope);return;
+            }
             float lateral=Mathf.Abs(Mathf.Tan((aimOffsetDegrees+horizontal)*Mathf.Deg2Rad))*distance;
             float hitHeight=baseHeight+slope*distance+ElevationError(shooter,target,distance);
             HitRegion region=ResolveRegion(lateral,hitHeight,settings.targetRadius);
@@ -320,23 +332,25 @@ namespace FpsManager
             float spread=gun.baseSpreadDegrees*(settings.spreadFactorAtAimZero+(settings.spreadFactorAtAimHundred-settings.spreadFactorAtAimZero)*aim);
             // Sustained fire widens the cone even when a skilled player compensates the fixed pattern.
             spread*=1+Mathf.Min(1.4f,Mathf.Max(0,burstShots[shooter]-2)*.075f)*recovery;
+            spread+=MovementSpread(shooter);
             horizontal = random.NextSigned() * spread + kick.x;
             // Independent stream preserves shot/reaction randomness; narrow head zone is
             // resolved from a vertical aim point and angular error, not a dodge bonus.
-            bool aimHead=hitRandom[shooter].Next01()<.1f+.25f*aim;
-            if(retap[shooter]) { aimHead=true; retap[shooter]=false; }
+            bool aimHead=hitRandom[shooter].Next01()<(.12f+.22f*aim+(retap[shooter]?.04f:0));
+            retap[shooter]=false;
             baseHeight=aimHead?.8f:0; slope=Mathf.Tan((hitRandom[shooter].NextSigned()*spread+kick.y)*Mathf.Deg2Rad);
             recoil[shooter]=Mathf.Min(3,recoil[shooter]+gun.recoilPerShot); sinceShot[shooter]=0; burstShots[shooter]++;
             if(VisualShot!=null)VisualShot(shooter,kick);
         }
 
-        void ApplyHit(int shooter,int target,HitRegion region)
+        void ApplyHit(int shooter,int target,HitRegion region){ApplyScaledHit(shooter,target,region,1);}
+        void ApplyScaledHit(int shooter,int target,HitRegion region,float damageScale)
         {
             var gun=WeaponFor(shooter);
             lastHit[shooter]=region;
             if(region==HitRegion.Miss) { if(ShotMissed!=null) ShotMissed(shooter); return; }
             Hits++; if(region==HitRegion.Head) Headshots++; else Bodyshots++;
-            float dealt=Mathf.Min(states[target].health,ProtectedDamage(target,gun,region));
+            float dealt=Mathf.Min(states[target].health,ProtectedDamage(target,gun,region,damageScale));
             states[target].health -= dealt;
             if(DamageDealt!=null)DamageDealt(shooter,target,dealt);
             if (states[target].health > 0f) return;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reflection;
 using System.Collections.Generic;
 using FpsManager;
@@ -12,7 +12,7 @@ public static class WeaponDropChecks
  static void Give(Prototype g,int i,string gun,int rounds,int spares){g.MatchState(i).equipment=new[]{"glock_18",gun};g.Combat.EquipSaved(i,gun,new WeaponAmmo{rounds=rounds,spares=spares});}
  public static void Run()
  {
-  EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);var g=new GameObject("Drop checks").AddComponent<Prototype>();g.Initialize();g.StartMatch();g.AdvanceFrame(3.01f);
+  EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);var g=new GameObject("Drop checks").AddComponent<Prototype>();g.Initialize();g.StartMatch();g.AdvanceFrame(Prototype.BuySeconds+.01f);
   var actors=(List<GameObject>)typeof(Prototype).GetField("actors",Flags).GetValue(g);
   actors[1].transform.position=actors[0].transform.position;
   Give(g,0,"ak_47",7,1);Give(g,1,"m4a1_s",3,0);

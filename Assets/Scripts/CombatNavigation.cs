@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 namespace FpsManager
@@ -22,6 +22,7 @@ namespace FpsManager
   // Costs encode our own spawn and shared observations only; no enemy transforms.
   public List<Vector2> CombatRoute(Vector2 start,Vector2 destination,Vector2 spawn,List<Vector2> knownThreats)
   {
+   if(RouteOverride!=null)return RouteOverride(start,destination);
    int source=Nearest(start,true),goal=Nearest(destination,false);
    if(source<0||goal<0)throw new InvalidOperationException("Combat route endpoint blocked");
    bool avoidSpawn=Vector2.Distance(start,spawn)>26&&Vector2.Distance(destination,spawn)>26;

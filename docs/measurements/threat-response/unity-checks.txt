@@ -1,0 +1,10 @@
+THREAT_ALL_OK local priority, direct fight, reachable uncertainty, face-before-expose
+CLUTCH_ALL_OK deliberate stable angles/rear, normal-team exclusion, last survivor, safe AWP-AR exchange, hidden ammo, sidearm kept, no swap-back, travel/kit deadline, urgent release, reset
+ENGAGEMENT_FOCUS_ALL_OK crossing switches=0, continued fire, short occlusion, frozen memory/no hidden shot, release, death, urgent close threat, reset, single bounded yaw writer
+PREAIM_ALL_OK future angles, fixed world point, no-contact hold/lurk patrol, real cover, hidden timing, urgent release, height reset; natural peek ticks=753 rounds=3
+THREAT_UNITY_OK
+[ExitDontLaunchBugReporter] Exiting without the bug reporter. Application will exit with return code 0
+THREAT_ALL_OK local priority, direct fight, reachable uncertainty, face-before-expose
+ELEVATION_ALL_OK floors, cover, mid ramp, observer map, aim skill, blocked shots, AI stairs/jump/return, spawn reset
+THREAT_FINAL_UNITY_OK
+[ExitDontLaunchBugReporter] Exiting without the bug reporter. Application will exit with return code 0

@@ -10,7 +10,7 @@ public static class ElevationVisualChecks
  public static void Run()
  {
   ElevationChecks.Run();EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
-  var game=new GameObject("Elevation QA").AddComponent<Prototype>();game.Initialize();game.StartMatch();game.AdvanceFrame(3.01f);
+  var game=new GameObject("Elevation QA").AddComponent<Prototype>();game.Initialize();game.StartMatch();game.AdvanceFrame(Prototype.BuySeconds+.01f);
   string output=Environment.GetEnvironmentVariable("ELEVATION_QA_OUTPUT")??Path.GetTempPath();Directory.CreateDirectory(output);
   var flags=BindingFlags.NonPublic|BindingFlags.Instance;
   var capture=typeof(CharacterModelSetup).GetMethod("Capture",BindingFlags.NonPublic|BindingFlags.Static);

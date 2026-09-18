@@ -1,0 +1,6 @@
+SOURCE_SAVE_OK de_dust2 travel=25.3313
+SOURCE_SAVE_OK de_mirage travel=6.212093
+SOURCE_SAVE_OK de_nuke travel=20.25022
+SOURCE_SAVE_OK de_vertigo travel=11.51831
+EQUIPMENT_SAVE_ALL_OK economy, full-only, deficit, CT/T timing, match point, cover, hidden-info isolation, crouch height, bomb exclusion, survival and reset
+Exiting batchmode successfully now!

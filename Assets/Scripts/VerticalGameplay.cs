@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 namespace FpsManager
 {
@@ -19,7 +19,7 @@ namespace FpsManager
    var stone=Material(new Color(.38f,.40f,.43f));var trim=Material(new Color(.51f,.46f,.35f));var wood=Material(new Color(.50f,.32f,.15f));
 #if UNITY_5_3_OR_NEWER
    foreach(var material in new[]{stone,trim,wood}){material.shader=Shader.Find("Standard");material.SetFloat("_Glossiness",.12f);}
-   var lightObject=new GameObject("Elevation shape light");lightObject.transform.SetParent(transform,false);lightObject.transform.rotation=Quaternion.Euler(55,-35,0);
+   var lightObject=new GameObject("Elevation shape light");arenaObjects.Add(lightObject);lightObject.transform.SetParent(transform,false);lightObject.transform.rotation=Quaternion.Euler(55,-35,0);
    var light=lightObject.AddComponent<Light>();light.type=LightType.Directional;light.intensity=1.1f;light.cullingMask=1;light.shadows=LightShadows.None;
 #endif
    ElevatedBox("A upper floor",new Vector2(89,30),2.75f,new Vector3(8,.25f,8),stone);
@@ -39,9 +39,10 @@ namespace FpsManager
   }
   void ConfigureElevation()
   {
+   if(sourceArena!=null){ConfigureSourceElevation();return;}
    navigation.MovementFilter=AutomaticMatch?new Func<Vector2,Vector2,bool>(elevation.GroundClear):null;
    vision.PairGeometry=AutomaticMatch?new Func<int,int,Vector2,Vector2,bool>(HeightVisibility):null;
-   combat.FeetHeight=AutomaticMatch?new Func<int,float>(PlayerHeight):null;
+   combat.FeetHeight=AutomaticMatch?new Func<int,float>(StanceHeight):null;
    combat.HeightShotClear=AutomaticMatch?new Func<int,int,float,bool>(HeightBullet):null;
    director.InteractionAllowed=AutomaticMatch?new Func<int,bool>(i=>PlayerHeight(i)<.4f):null;
    if(autonomy!=null&&AutomaticMatch)
@@ -53,6 +54,7 @@ namespace FpsManager
   }
   void ResetElevation()
   {
+   elevation.SightOverride=null;ResetTraversal();
    for(int i=0;i<10;i++)climbers[i]=new ClimbState();
    if(navigation!=null)navigation.MovementFilter=null;
    if(vision!=null)vision.PairGeometry=null;
@@ -61,25 +63,27 @@ namespace FpsManager
   }
   bool HeightVisibility(int i,int j,Vector2 a,Vector2 b)
   {
-   float eye=PlayerHeight(i)+1.65f,body=PlayerHeight(j)+1;
+   float eye=StanceHeight(i)+1.65f,body=StanceHeight(j)+1;
    if(Mathf.Abs(Mathf.Atan2(body-eye,Mathf.Max(.01f,Vector2.Distance(a,b)))/Mathf.Deg2Rad)>65)return false;
    return (elevation.Sight(a,eye,b,body)&&autonomy.ClearSight3D(a,eye,b,body))||(elevation.Sight(a,eye,b,body+.8f)&&autonomy.ClearSight3D(a,eye,b,body+.8f));
   }
   bool HeightBullet(int shooter,int target,float relativeHeight)
-  {return elevation.Sight(MapPosition(shooter),PlayerHeight(shooter)+1.65f,MapPosition(target),PlayerHeight(target)+1+relativeHeight);}
+  {return elevation.Sight(MapPosition(shooter),StanceHeight(shooter)+1.65f,MapPosition(target),StanceHeight(target)+1+relativeHeight);}
   void GroundActor(int i)
   {
+   if(sourceArena!=null){SourceGroundActor(i);return;}
    if(!ElevatedMatch)return;var p=actors[i].transform.position;p.y=1+ElevationMap.Ground(MapPosition(i));actors[i].transform.position=p;
   }
   void SettleDeadHeight(int i,float dt)
   {
    if(!ElevatedMatch)return;
-   float feet=PlayerHeight(i),floor=ElevationMap.Ground(MapPosition(i));
+   float feet=PlayerHeight(i),floor=MapFloor(MapPosition(i),PlayerHeight(i));
    foreach(var solid in elevation.Solids)if(solid.top<=feet+.1f&&solid.top>floor&&ElevationMap.Inside(solid.area,MapPosition(i)))floor=solid.top;
    var p=actors[i].transform.position;p.y=1+Mathf.Max(floor,feet-8*dt);actors[i].transform.position=p;
   }
   bool StepElevation(int i,PlayerObjective order,float dt)
   {
+   if(sourceArena!=null)return false;
    if(!ElevatedMatch)return false;var s=climbers[i];s.cooldown=Mathf.Max(0,s.cooldown-dt);
    bool urgent=order.task==PlayerTask.PlantBomb||order.task==PlayerTask.Defuse||order.task==PlayerTask.RecoverBomb||order.task==PlayerTask.Retake||order.task==PlayerTask.FallBack||director.Carrier==i;
    if(s.link<0)

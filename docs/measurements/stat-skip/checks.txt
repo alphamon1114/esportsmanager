@@ -1,0 +1,5 @@
+﻿FAST_FORWARD_ALL_OK statistical deterministic rounds, score/KDA/economy/ammo, next buy, timeout, cancel, full AI BO3 + archived KDA; elapsed=2.536s
+MATCH_FLOW_ALL_OK 5s result / 3s buy, automatic rounds, rewards, timeout queue/limit/expiry, strategy lock/application, halftime, map end, deuce rules, buying, new map
+MATCH_STATS_ALL_OK damage clamp, assists, trades, survival, side splits, duplicate end, map finish, new map reset
+TOURNAMENT_ALL_OK 8/40, seed, 23-map bracket, BO5 champion, invalid saves, actual map recording, next map reset, two AI coaches, spectator lock, natural combat
+﻿

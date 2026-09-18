@@ -37,10 +37,12 @@ namespace FpsManager
     public sealed class MapLayout
     {
         public Vector2[][][] FlankRoutes; // per target site, alternate-side and mid routes
+        public Vector2 Mid=new Vector2(45,38);
         public Vector2 AttackerSpawn;
         public Vector2[] Sites;        // plant spots
         public string[] SiteNames;
         public Vector2[] Staging;      // per site: where defenders fall back to and retake from
+        public Vector2[][] StackPost, StackPeek; // two exposed guards, three covered trade posts
         public Vector2[][] HoldRing;   // per site: spread positions around it
         public Vector2[][] Approaches; // per site: the mouths attackers come through
         public Vector2[][] PeekPost;   // per site, per approach: holds that mouth
@@ -62,6 +64,8 @@ namespace FpsManager
         // breaking off does not shoot while they move: firing on the move is not
         // modelled, so the retreat costs them their gun until they are set again.
         public bool disengage;
+        public bool plannedExecute; public Vector2 utilityTarget,utilityBlockTarget;
+        public bool stackHold, stackHidden, forwardAdvance;
         public bool cautious; // Approach a known friendly-loss area, not a known enemy.
     }
 
@@ -129,7 +133,7 @@ namespace FpsManager
         {
             Phase = RoundPhase.Preparation;
             Outcome = RoundOutcome.None;
-            SoundIntel=null; ResetTactics(); HasDefuseKit=null;BombReachable=null;Defuser=-1;lastDropper=-1;reclaimAt=0;
+            PreservingEquipment=null; SoundIntel=null; SidePlansEnabled=false; ResetTactics(); HasDefuseKit=null;DefuseSafe=null;PreferredDefuser=null;CommittedDefuse=false;BombReachable=null;Defuser=-1;lastDropper=-1;reclaimAt=0;
             Clock = 0f; PlantProgress = 0f; DefuseProgress = 0f; BombTimer = 0f;
             PlantedSite = -1; Carrier = -1; BombDropped = false; TargetSite = 0;
             for (int i = 0; i < count; i++)
@@ -179,6 +183,7 @@ namespace FpsManager
                         : AttackerObjective(i, positions, team, ctTeam, homeAnchor, vision, combat))
                     : new PlayerObjective();
 
+            UpdateSidePlans(positions,team,ctTeam,homeAnchor,vision,combat);
             CheckEnding(team, ctTeam, combat);
         }
 
@@ -259,7 +264,7 @@ namespace FpsManager
 
         void UpdatePlanting(float delta, Vector2[] positions, int[] team, int tTeam, VisionSystem vision, CombatSystem combat)
         {
-            if (Carrier < 0 || Phase != RoundPhase.Execute) { PlantProgress = 0f; return; }
+            if (Carrier < 0 || Phase != RoundPhase.Execute || (PreservingEquipment!=null&&PreservingEquipment(Carrier))) { PlantProgress = 0f; return; }
             bool inPlace = (InteractionAllowed==null||InteractionAllowed(Carrier))&&Vector2.Distance(positions[Carrier], layout.Sites[TargetSite]) <= settings.interactRadius;
             // Planting is interrupted by having something to shoot at, or by the team
             // currently seeing a defender near the site. Both are observed facts.
@@ -274,18 +279,32 @@ namespace FpsManager
             Phase = RoundPhase.PostPlant;
         }
 
+        public Func<int,bool> DefuseSafe;
+        public Func<int,bool> PreservingEquipment;
+        public Func<int> PreferredDefuser;
+        public bool CommittedDefuse {get;private set;}
+
+        public void InterruptDefuse(int i){if(Defuser==i){Defuser=-1;DefuseProgress=0;CommittedDefuse=false;}}
+        bool CanDefuse(int i,Vector2[] positions,int[] team,int ct,CombatSystem combat){
+            return team[i]==ct&&combat.Alive(i)&&(PreservingEquipment==null||!PreservingEquipment(i))&&((CommittedDefuse&&Defuser==i)||(DefuseSafe!=null?DefuseSafe(i):!combat.Engaging(i)))
+                &&(InteractionAllowed==null||InteractionAllowed(i))&&Vector2.Distance(positions[i],BombPosition)<=settings.interactRadius;
+        }
         void UpdatePlantedBomb(float delta, Vector2[] positions, int[] team, int ctTeam, CombatSystem combat)
         {
             BombTimer -= delta;
             if (BombTimer <= 0f) { BombTimer = 0f; End(RoundOutcome.BombExploded); return; }
-            int defuser = -1;
+            int preferred=PreferredDefuser!=null?PreferredDefuser():-1;
+            int defuser = Defuser;
+            if(defuser>=0&&!CanDefuse(defuser,positions,team,ctTeam,combat))defuser=-1;
             for (int i = 0; i < count; i++)
             {
-                if (team[i] != ctTeam || !combat.Alive(i) || combat.Engaging(i)) continue;
+                if(Defuser>=0&&defuser==Defuser)break;
+                if(preferred>=0&&i!=preferred)continue;
+                if(!CanDefuse(i,positions,team,ctTeam,combat))continue;
                 if ((InteractionAllowed!=null&&!InteractionAllowed(i))||Vector2.Distance(positions[i], BombPosition) > settings.interactRadius) continue;
                 if(defuser<0||(HasDefuseKit!=null&&HasDefuseKit(i)&&!HasDefuseKit(defuser)))defuser=i;
             }
-            if(defuser!=Defuser){DefuseProgress=0;Defuser=defuser;}
+            if(defuser!=Defuser){DefuseProgress=0;Defuser=defuser;CommittedDefuse=defuser>=0&&defuser==preferred;}
             if (defuser < 0) { DefuseProgress = 0f; return; }
             DefuseProgress += delta;
             if (DefuseProgress >= DefuseDuration) End(RoundOutcome.BombDefused);
@@ -468,7 +487,7 @@ namespace FpsManager
             if(team[player]==StrategyTeam)tolerance+=Strategy==TeamStrategy.Defensive?-1:Strategy==TeamStrategy.Aggressive?1:0;
             // No guard is needed for the quiet case: a living defender always counts
             // themselves, so with nothing seen and nobody lost the sum cannot win.
-            if (seen + down > friends + tolerance)
+            if (seen + down > 0 && seen + down > friends + tolerance)
             {
                 // Break off only while there is ground to give up. Once back at the
                 // regroup point the player sets again and fights from there, otherwise
@@ -530,9 +549,8 @@ namespace FpsManager
 
         int HomeSite(Vector2 anchor)
         {
-            for (int i = 0; i < layout.SiteCount; i++)
-                if (Vector2.Distance(anchor, layout.Sites[i]) <= settings.siteRadius) return i;
-            return -1;
+            int nearest=NearestSite(anchor);
+            return Vector2.Distance(anchor,layout.Sites[nearest])<=settings.siteRadius?nearest:-1;
         }
 
         // Where a player standing still should be looking. The last contact the team holds

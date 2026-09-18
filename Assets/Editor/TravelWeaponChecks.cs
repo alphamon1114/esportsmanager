@@ -17,7 +17,7 @@ public static class TravelWeaponChecks
   Check(nav.SightClear(p,p+watch),"peek watches wall interior");
   EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);var g=new GameObject("Travel checks").AddComponent<Prototype>();g.Initialize();
   for(int i=0;i<10;i++)Check(g.HeldWeapon(i)=="knife","lobby not knife");g.StartMatch();
-  for(int i=0;i<10;i++)Check(g.HeldWeapon(i)=="knife","first buying not knife");g.AdvanceFrame(3.01f);
+  for(int i=0;i<10;i++)Check(g.HeldWeapon(i)=="knife","first buying not knife");g.AdvanceFrame(Prototype.BuySeconds+.01f);
   var f=BindingFlags.Instance|BindingFlags.NonPublic;var update=typeof(Prototype).GetMethod("UpdateTravelWeapon",f);
   order=new PlayerObjective{valid=true,task=PlayerTask.MoveToLane,destination=g.MapPosition(0)+new Vector2(30,0)};
   update.Invoke(g,new object[]{0,order});Check(g.Combat.KnifeOut(0),"safe distant opening did not draw knife");

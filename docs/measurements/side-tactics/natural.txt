@@ -1,0 +1,4 @@
+﻿SIDE_TACTIC_ALL_OK six plans, formations, utility preparation, no rush lurker, mid win/site commit/loss fallback, independent saved plans, live lock
+SIDE_NATURAL_OK Rush rounds=2
+SIDE_NATURAL_OK MidPlay rounds=1
+﻿

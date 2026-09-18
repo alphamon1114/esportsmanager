@@ -14,7 +14,7 @@ namespace FpsManager
         readonly List<Material> materials = new List<Material>();
         Camera mapCamera, eyeCamera;
         RenderTexture mapTexture, eyeTexture;
-        const string AlliedTeamId = "spirit";
+        string AlliedTeamId = "spirit";
         int selected, ctTeam;
         PlayerMatchState[] matchState;
         public RoundOutcome LastRoundOutcome { get; private set; }
@@ -72,7 +72,7 @@ namespace FpsManager
             if (Data != null) return;
             var asset = Resources.Load<TextAsset>("teams");
             if (asset == null) throw new InvalidOperationException("Resources/teams.json is missing.");
-            Data = JsonUtility.FromJson<Database>(asset.text);
+            Data = JsonUtility.FromJson<Database>(ConditionRules.MigrateJson(asset.text));
             if (Data.teams.Length != 2 || Data.players.Length != 10) throw new InvalidOperationException("Expected two teams and ten players.");
             matchState=new PlayerMatchState[Data.players.Length];
             for(int i=0;i<matchState.Length;i++) matchState[i]=new PlayerMatchState();
@@ -85,7 +85,7 @@ namespace FpsManager
             for (int i = 0; i < Data.players.Length; i++)
             {
                 aimStats[i] = Data.players[i].stats.aim;
-                composureStats[i] = Data.players[i].stats.composure;
+                composureStats[i] = EffectiveStats(i).composure;
                 routes.Add(new List<Vector2>());
             }
             layout = BuildLayout();
@@ -118,7 +118,7 @@ namespace FpsManager
             }
             PlaceTeams();
         }
-        void Start() { try { Initialize(); ShuffleSpawnPlayers(); PrepareIglOrders(); } catch(Exception ex) { error=ex.Message; Debug.LogException(ex); } }
+        void Start() { try { Initialize(); ActivateMatchMap("de_inferno");PlaceTeams(); ShuffleSpawnPlayers(); PrepareIglOrders(); OpenMainMenu(); } catch(Exception ex) { error=ex.Message; Debug.LogException(ex); } }
         Material Material(Color color)
         {
             var m = new Material(Shader.Find("Unlit/Color")); m.color=color; materials.Add(m); return m;
@@ -128,7 +128,7 @@ namespace FpsManager
             if(name=="Wall"||name=="Cover") { var rect=new Rect(position.x-scale.x/2,100-position.z-scale.z/2,scale.x,scale.z);obstacles.Add(rect);elevation.Add(rect,position.y-scale.y/2,position.y+scale.y/2); }
             var obj=GameObject.CreatePrimitive(PrimitiveType.Cube); obj.name=name;
             obj.transform.SetParent(transform); obj.transform.position=position; obj.transform.localScale=scale;
-            obj.GetComponent<Renderer>().sharedMaterial=material; return obj;
+            obj.GetComponent<Renderer>().sharedMaterial=material;arenaObjects.Add(obj); return obj;
         }
         Camera NewCamera(string name, RenderTexture target)
         {
@@ -308,6 +308,7 @@ namespace FpsManager
         // player: Route is a full grid search and objectives change rarely.
         void MoveTo(int player, Vector2 destination)
         {
+            if(sourceArena!=null){SourceMoveTo(player,destination);return;}
             if(routeValid[player]&&(destination-destinations[player]).sqrMagnitude<1f) return;
             if(repathDelay[player]>0f) return;
             destinations[player]=destination; repathDelay[player]=.5f;
@@ -330,6 +331,7 @@ namespace FpsManager
         }
         void StepRoute(int player, float tick)
         {
+            if(sourceArena!=null){SourceStepRoute(player,tick);return;}
             Vector2 previousPosition=MapPosition(player);
             float speed=5f;
             if(roundMode)
@@ -373,24 +375,37 @@ namespace FpsManager
             }
             else if(order.valid&&order.watch.sqrMagnitude>.001f) fallback=position+order.watch.normalized*12;
             if(AutomaticMatch)fallback=navigation.VisibleAimPoint(position,ExpectedAngle(player,order,tick));
-            FaceWatch(player,movementAim[player].Choose(player,position,fallback,teamIndex,vision),tick);
-            if(AutomaticMatch&&!movementAim[player].HasContact)combat.PreAimHeight(player,ElevationMap.Ground(fallback),Vector2.Distance(position,fallback),tick,aimStats[player]);
+            FaceWatch(player,SharedAimDirection(player,fallback),tick);
+
         }
         void FaceWatch(int player, Vector2 watch, float tick)
         {
+            if(UnifiedRoundAim)
+            {
+                if(aimApplied[player])return;aimApplied[player]=true;
+                if(combat.FocusTarget(player)>=0)watch=combat.FocusPoint(player)-MapPosition(player);
+                else if(ImmediateCue(player,out var threatPoint))watch=threatPoint-MapPosition(player);
+                else if(combat.Spamming(player))watch=combat.SuppressionPoint(player)-MapPosition(player);
+                else if(clutchSearch[player]!=null&&clutchSearch[player].Active)watch=clutchSearch[player].Point-MapPosition(player);
+            }
             if(watch.sqrMagnitude<.0001f) return;
+            if(UnifiedRoundAim&&combat.FocusTarget(player)<0){var point=MapPosition(player)+watch;combat.PreAimHeight(player,MapFloor(point,PlayerHeight(player)),watch.magnitude,tick,aimStats[player]);}
+            if(UnifiedRoundAim&&combat.PhysicalBullets&&combat.FocusTarget(player)>=0){
+                var facing=combat.HumanFacing(player,MapPosition(player),MapFacing(player),MapPosition(player)+watch,tick,aimStats[player]);
+                actors[player].transform.rotation=Quaternion.LookRotation(new Vector3(facing.x,0,-facing.y));return;
+            }
             var target=Quaternion.LookRotation(new Vector3(watch.x,0,-watch.y));
-            actors[player].transform.rotation=Quaternion.RotateTowards(actors[player].transform.rotation,target,180*tick);
+            actors[player].transform.rotation=Quaternion.RotateTowards(actors[player].transform.rotation,target,(UnifiedRoundAim?120+Mathf.Clamp01(aimStats[player]/100f)*60:180)*tick);
         }
         public void PlaceTeams()
         {
-            ResetElevation();
+            ResetEquipmentSave();ResetElevation();
             ClearGroundWeapons();ClearBombEquipment();
             deploymentStarted=false; paused=false; elapsed=0; DeploymentComplete=false; roundMode=false;
             ClearRoutes(); Array.Clear(moveSpeed,0,moveSpeed.Length); preparationError=null;
             autonomy=null; SyncUtilityVisuals();
             if(vision!=null) { vision.Reset(); vision.LegacyFootsteps=true; vision.ExtraSight=null; vision.Blinded=null; }
-            if(combat!=null) { combat.DamageDealt=null; combat.VisualShot=null; ResetShotPresentation(); combat.AmmoEnabled=false; combat.Killed=null; combat.ShotFired=null; combat.ReloadStarted=null; combat.ShotMissed=null; combat.FollowupChosen=null; }
+            if(combat!=null) { combat.PhysicalBullets=false;combat.BulletClear=null;combat.BulletTraced=null;combat.UnifiedAim=false; combat.DamageDealt=null; combat.VisualShot=null; ResetShotPresentation(); combat.AmmoEnabled=false; combat.Killed=null; combat.ShotFired=null; combat.ReloadStarted=null;combat.ReloadAllowed=null; combat.ShotMissed=null; combat.FollowupChosen=null; }
             if(combat!=null) { for(int i=0;i<10;i++) combat.Equip(i,null); combat.Reset(roundSeed); }
             if(director!=null) director.Reset();
             for(int i=0;i<alive.Length;i++) { alive[i]=true; arrived[i]=false; moving[i]=false; }
@@ -403,7 +418,7 @@ namespace FpsManager
             {
                 bool isCt=Data.players[i].teamId==Data.teams[ctTeam].id;
                 var p=isCt?ctPositions[ct++]:tPositions[t++];
-                actors[i].transform.position=World(p);
+                actors[i].transform.position=World(p);SourceSpawn(i);
                 var target=isCt?new Vector2(45,76):new Vector2(45,50);
                 actors[i].transform.LookAt(World(target));
                 actors[i].GetComponent<Renderer>().sharedMaterial=isCt?ctMaterial:tMaterial;
@@ -425,7 +440,7 @@ namespace FpsManager
                 int slot=0;
                 for(int i=0;i<actors.Count;i++) if(teamIndex[i]==team)
                 {
-                    actors[i].transform.position=World(slots[slot++]);
+                    actors[i].transform.position=World(slots[slot++]);SourceSpawn(i);
                     actors[i].transform.LookAt(World(team==ctTeam?new Vector2(45,76):new Vector2(45,50)));
                 }
             }
@@ -442,7 +457,10 @@ namespace FpsManager
         }
         public void AdvanceFrame(float delta)
         {
-            if(AutomaticMatch){AdvanceMatch(delta);return;}
+            if(PauseMenuOpen)return;
+            if(FastForwarding){PumpFastForward();return;}
+            if(AwaitingMapStart||menuPage!=0||tournamentBoard)return;
+            if(AutomaticMatch){AdvanceMatch(delta);RecordTournamentMap();return;}
             // Preparation does not reveal contacts or resume combat at the new spawn.
             if(!deploymentStarted||paused) return;
             SimulateMovement(delta);
@@ -451,11 +469,12 @@ namespace FpsManager
         public void Select(int index)
         {
             if(index<0||index>=actors.Count) return;
-            if(selected!=index)ClearViewKick();
+            if(selected!=index){ClearViewKick();if(sourceArena!=null&&HasSourceFloors)SetSourceRadar(PlayerHeight(index)<SourceFloorSplit);}
             selected=index;
+
             for(int i=0;i<actors.Count;i++) actors[i].layer=i==selected?8:0;
             SyncCharacterVisuals();
-            eyeCamera.transform.position=actors[index].transform.position+Vector3.up*.65f;
+            eyeCamera.transform.position=actors[index].transform.position+Vector3.up*(IsCrouched(index)?.10f:.65f);
             eyeCamera.transform.rotation=actors[index].transform.rotation;
 #if UNITY_5_3_OR_NEWER
             eyeCamera.transform.rotation*=Quaternion.Euler(-combat.AimElevation(index),0,0);
@@ -503,10 +522,9 @@ namespace FpsManager
                 var rng=new DeterministicRandom(unchecked(roundSeed ^ (team+1)*73856093));
                 bool ct=team==ctTeam;
                 int[] slots=(rng.NextUInt()%2==0)?new[]{0,0,1,1,2}:new[]{0,0,1,2,2};
-                if(AutomaticMatch&&team==AlliedTeamIndex)
-                    slots=Strategy==TeamStrategy.Aggressive?new[]{0,1,1,1,2}:Strategy==TeamStrategy.Defensive?new[]{0,0,1,2,2}:slots;
+                if(AutomaticMatch)slots=SideSlots(team);
                 // Mirror the two sites, so one site is not always the heavily staffed one.
-                if(rng.NextUInt()%2==0) for(int j=0;j<slots.Length;j++) if(slots[j]!=1) slots[j]=2-slots[j];
+                if(!AutomaticMatch&&rng.NextUInt()%2==0) for(int j=0;j<slots.Length;j++) if(slots[j]!=1) slots[j]=2-slots[j];
                 for(int s=0;s<slots.Length;s++)
                 {
                     int best=-1; float score=float.MinValue;
@@ -514,7 +532,8 @@ namespace FpsManager
                     {
                         var player=Data.players[i];
                         float candidate=rng.Next01()*10;
-                        if(player.weaponPosition=="awper" && slots[s]==1) candidate+=30;
+                        if(player.weaponPosition=="awper" && slots[s]==1 && !(AutomaticMatch&&ct&&DefenseFor(team)==DefenseTactic.Forward)) candidate+=30;
+                        if(AutomaticMatch&&ct&&DefenseFor(team)==DefenseTactic.Forward&&slots[s]==1&&player.weaponPosition!="awper")candidate+=40;
                         if(player.riflerRole=="anchor_lurker" && ct && slots[s]!=1) candidate+=25;
                         if(player.riflerRole=="entry" && !ct && slots[s]!=1) candidate+=25;
                         if(candidate>score) { score=candidate; best=i; }
@@ -527,7 +546,7 @@ namespace FpsManager
         public void BeginRound()
         {
             if(deploymentStarted) return;
-            PrepareIglOrders();
+            RefreshConditionStats();PrepareIglOrders();
             for(int i=0;i<actors.Count;i++)
             {
                 homeAnchor[i]=(teamIndex[i]==ctTeam?ctZones:tZones)[assignments[i]];
@@ -537,31 +556,32 @@ namespace FpsManager
             if(!AutomaticMatch)foreach(var state in matchState) state.RestockUtility();
             autonomy=new PlayerAutonomy(roundSeed,navigation); combat.ConfigureSpam(autonomy,navigation);
             autonomy.SetUtilityContext(teamIndex,visionPositions);
-            for(int i=0;i<10;i++){movementAim[i]=new MovementAim();preAim[i]=new PreAimPlanner();}
-            for(int i=0;i<10;i++) peeking[i]=new PeekMovement(unchecked(roundSeed^(i+1)*73856093),navigation,Data.players[i].stats.movement,AutomaticMatch,Data.players[i].stats.composure,Data.players[i].riflerRole=="anchor_lurker");
+            for(int i=0;i<10;i++){movementAim[i]=new MovementAim();preAim[i]=new PreAimPlanner();awperMovement[i]=new AwperMovement(unchecked(roundSeed^(i+1)*19349663),navigation);awpCycle[i]=0;awpSidearm[i]=false;}
+            for(int i=0;i<10;i++) peeking[i]=new PeekMovement(unchecked(roundSeed^(i+1)*73856093),navigation,EffectiveStats(i).movement,AutomaticMatch,EffectiveStats(i).composure,Data.players[i].riflerRole=="anchor_lurker");
             vision.LegacyFootsteps=false; vision.ExtraSight=autonomy.ClearSight; vision.Blinded=autonomy.Blinded;
-            combat.AmmoEnabled=true;
+            combat.UnifiedAim=AutomaticMatch;combat.AmmoEnabled=true;combat.ReloadAllowed=CanReloadSafely;ResetSafeReload();
             killFeed.Clear(); combat.Killed=RecordKill;
             for(int i=0;i<10;i++) { combat.Equip(i,WeaponCatalog.Equipped(matchState[i].equipment));combat.BindProtection(i,matchState[i]); }
             combat.ShotMissed=null;
-            for(int i=0;i<10;i++) combat.SetMovementSkill(i,Data.players[i].stats.movement);
+            for(int i=0;i<10;i++) combat.SetMovementSkill(i,EffectiveStats(i).movement);
             combat.FollowupChosen=(i,style)=> { if(style==FollowupStyle.EvadeAndTap) peeking[i].RequestRetap(); };
-            if(AutomaticMatch){Statistics.Begin(teamIndex,ctTeam);combat.DamageDealt=Statistics.Damage;}
-            combat.VisualShot=ShotPresentation;
-            combat.ShotFired=i=>autonomy.Sounds.Emit(i,MapPosition(i),SoundKind.Gunshot);
+            if(AutomaticMatch){ResetClutch();ResetThreats();ResetEquipmentSave();ResetFinishingCombat();Statistics.Begin(teamIndex,ctTeam);combat.DamageDealt=RecordCombatDamage;}
+            combat.VisualShot=ShotPresentation;combat.PhysicalBullets=AutomaticMatch;combat.BulletClear=AutomaticMatch?new Func<Vector2,float,Vector2,float,bool>(elevation.Sight):null;combat.BulletTraced=PresentBullet;
+            combat.ShotFired=i=> { autonomy.Sounds.Emit(i,MapPosition(i),SoundKind.Gunshot); if(AutomaticMatch&&combat.WeaponFor(i).id=="awp"){awpCycle[i]=combat.WeaponFor(i).fireInterval;awperMovement[i].Shot(MapPosition(i),visionFacing[i],combat.WeaponFor(i).fireInterval);} };
             combat.ReloadStarted=i=>autonomy.Sounds.Emit(i,MapPosition(i),SoundKind.Reload);
             ConfigureElevation();
-            director.Begin(roundSeed,teamIndex,ctTeam);ConfigureBombEquipment();
+            director.Begin(roundSeed,teamIndex,ctTeam);ConfigureBombEquipment();director.PreservingEquipment=IsSavingEquipment;KeepMidCarrierWithGroup();
             roundScored=false;
             director.StrategyTeam=AlliedTeamIndex;director.Strategy=AutomaticMatch?Strategy:TeamStrategy.Balanced;
             director.SoundIntel=autonomy.Sounds;
-            director.ConfigureTactics(Data.players,teamIndex,ctTeam,navigation);
+            director.ConfigureTactics(MatchPlayers(),teamIndex,ctTeam,navigation);
+            director.ConfigureSidePlans(AutomaticMatch,DefenseFor(ctTeam),AttackFor(1-ctTeam),StackSite(),MatchPlayers());
             deploymentStarted=true; roundMode=true; paused=false; DeploymentComplete=false; preparationError=null;
             // Spawned players are stationary. Each round tick updates fire readiness
             // from actual translation, independently of their aim direction.
             for(int i=0;i<arrived.Length;i++) arrived[i]=true;
         }
-        void Update() { if(Data!=null&&error==null) AdvanceFrame(Time.deltaTime); }
+        void Update() { CheckPauseInput();if(Data!=null&&error==null) AdvanceFrame(Time.deltaTime); }
         void LateUpdate() { if(eyeCamera!=null&&actors.Count>selected) Select(selected); SyncUtilityVisuals(); SyncGroundWeaponVisuals(); SyncBombEquipmentVisuals(); UpdateShotPresentation(); }
         public VisionSystem Vision { get { return vision; } }
         public DeploymentNavigation Navigation { get { return navigation; } }
@@ -607,7 +627,7 @@ namespace FpsManager
             for(int i=0;i<actors.Count;i++)
             {
                 if(!alive[i]) { actors[i].GetComponent<Renderer>().sharedMaterial=deadMaterial; continue; }
-                if(!combat.Engaging(i)||moving[i]) continue;
+                if(combat.UnifiedAim||!combat.Engaging(i)||moving[i]) continue;
                 // Moving actors use the same independent aim for rendering and detection.
                 // Combat may fire only after they have stopped.
                 var f=visionFacing[i];
@@ -637,15 +657,35 @@ namespace FpsManager
         void SimulateRound(float tick)
         {
             if(director.Phase==RoundPhase.Ended) return;
+            BeginPlayerMovement();
             SettleGroundWeapons(tick);TickBombEquipment(tick);
             autonomy.Tick(tick,visionPositions,visionFacing,alive);
+            Array.Clear(aimApplied,0,aimApplied.Length);
+            combat.UpdateEngagementFocus(tick,visionPositions,visionFacing,teamIndex,vision);if(AutomaticMatch){RememberThreats();ObserveCoach();DecideEquipmentSave();}
             for(int i=0;i<actors.Count;i++)
             {
+                if(sourceArena!=null)sourceNavHeight=PlayerHeight(i);
                 repathDelay[i]=Mathf.Max(0f,repathDelay[i]-tick);
                 if(!combat.Alive(i)) { routeValid[i]=false; SettleDeadHeight(i,tick); continue; }
                 moving[i]=false;
-                var objective=autonomy.Decide(i,director.Objective(i),MapPosition(i),Data.players[i],matchState[i],combat,vision,teamIndex[i],teamIndex[i]==ctTeam);
+                if(AutomaticMatch&&StepSourceJump(i,tick))continue;
+                tacticalCrouch[i]=false;
+                if(AutomaticMatch&&StepUncontestedDefuse(i,tick))continue;
+                if(AutomaticMatch&&StepEquipmentSave(i,tick))continue;
+                if(AutomaticMatch&&StepCtOpening(i,tick))continue;
+                if(AutomaticMatch)UpdateClutch(i);
+                UpdateFinishingCombat(i,tick);
+                var objective=autonomy.Decide(i,director.Objective(i),MapPosition(i),MatchPlayer(i),matchState[i],combat,vision,teamIndex[i],teamIndex[i]==ctTeam);
+                UpdateAwperWeapon(i,tick);
+                if(AutomaticMatch&&StepSafeReload(i,tick))continue;
                 UpdateTravelWeapon(i,objective);
+                if(AutomaticMatch&&StepThreatResponse(i,tick))continue;
+                if(AutomaticMatch&&StepDefusing(i))continue;
+                if(AutomaticMatch&&CollectClutchRifle(i,tick))continue;
+                if(AutomaticMatch&&StepForwardAdvance(i,objective,tick))continue;
+                if(AutomaticMatch&&StepStackPost(i,objective,tick))continue;
+                if(StepAwper(i,objective,tick))continue;
+                if(AutomaticMatch&&StepClutchSearch(i,objective,tick))continue;
                 if(AlignBeforeEntry(i,objective,tick))continue;
                 if(CollectNearbyWeapon(i,objective,tick))continue;
                 if(StepElevation(i,objective,tick))continue;
@@ -653,7 +693,7 @@ namespace FpsManager
                 Vector2 probe=MapPosition(i)+MapFacing(i)*12;
                 bool contact=false;
                 float closest=float.MaxValue;
-                for(int enemy=0;enemy<actors.Count;enemy++)
+                for(int enemy=0;!AutomaticMatch&&enemy<actors.Count;enemy++)
                 {
                     if(teamIndex[enemy]==teamIndex[i]) continue;
                     var known=vision.Knowledge(teamIndex[i],enemy);
@@ -665,12 +705,19 @@ namespace FpsManager
                 if(!contact&&routeSteps[i]+1<routes[i].Count)
                     probe=routes[i][routeSteps[i]+1];
                 if(!contact&&AutomaticMatch)probe=ExpectedAngle(i,objective,0);
+                if(AutomaticMatch)
+                {
+                    var direction=SharedAimDirection(i,probe);
+                    contact=combat.FocusTarget(i)>=0||movementAim[i].HasContact;
+                    if(contact)probe=MapPosition(i)+direction;
+                }
                 Vector2 peekTarget,peekWatch;
-                if(combat.Reloading(i)||autonomy.Blinded[i]||combat.Health(i)<40)
+                if(combat.Reloading(i)||autonomy.Blinded[i]||combat.Health(i)<40||(clutchUrgent[i]&&combat.FocusTarget(i)<0))
                 { var cancel=objective; cancel.valid=false; peeking[i].Step(tick,MapPosition(i),cancel,probe,contact,out peekTarget,out peekWatch); }
                 else if(peeking[i].Step(tick,MapPosition(i),objective,probe,contact,out peekTarget,out peekWatch))
                 {
                     var before=MapPosition(i);
+                    if(AutomaticMatch&&clutchMode[i]&&Vector2.Dot(MapFacing(i),peekWatch.normalized)<.97f)peekTarget=before;
                     var next=Vector2.MoveTowards(before,peekTarget,tick*3.5f);
                     actors[i].transform.position=World(next);GroundActor(i);
                     moving[i]=Vector2.Distance(before,next)>.001f;
@@ -680,8 +727,7 @@ namespace FpsManager
                     routeValid[i]=false; repathDelay[i]=0; moveSpeed[i]=0;
                     continue;
                 }
-                // A player with something to shoot at stops and fights. Moving accuracy is
-                // not modelled yet, so standing still is the honest simplification.
+                // Prefer stopping to shoot; actual movement and stop recovery still widen the shot cone.
                 // A player breaking off ignores that and keeps moving.
                 bool seesEnemy=false;
                 for(int enemy=0;enemy<actors.Count;enemy++) if(teamIndex[enemy]!=teamIndex[i]&&vision.Sees(i,enemy)) { seesEnemy=true; break; }
@@ -697,11 +743,12 @@ namespace FpsManager
                 }
                 else { moveSpeed[i]=0; AimWhileMoving(i,objective,tick); }
             }
+            if(AutomaticMatch)ResolvePlayerMovement(tick);
             elapsed+=tick;
             for(int i=0;i<actors.Count;i++)
             {
                 var order=director.Objective(i);
-                combat.SpamAllowed[i]=!moving[i]&&!order.disengage&&order.task!=PlayerTask.PlantBomb&&order.task!=PlayerTask.Defuse&&order.task!=PlayerTask.RecoverBomb&&order.task!=PlayerTask.Retake;
+                combat.SpamAllowed[i]=!IsSavingEquipment(i)&&!moving[i]&&!order.disengage&&order.task!=PlayerTask.PlantBomb&&order.task!=PlayerTask.Defuse&&order.task!=PlayerTask.RecoverBomb&&order.task!=PlayerTask.Retake;
             }
             UpdateSenses(tick);
             autonomy.Sounds.Tick(tick,visionPositions,teamIndex,alive,navigation,vision);

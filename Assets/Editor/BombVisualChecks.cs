@@ -10,7 +10,7 @@ public static class BombVisualChecks
  public static void Run()
  {
   BombEquipmentChecks.Run();EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
-  var g=new GameObject("Kit visual").AddComponent<Prototype>();g.Initialize();g.StartMatch();g.AdvanceFrame(3.01f);
+  var g=new GameObject("Kit visual").AddComponent<Prototype>();g.Initialize();g.StartMatch();g.AdvanceFrame(Prototype.BuySeconds+.01f);
   g.MatchState(0).defuseKit=true;var f=BindingFlags.Instance|BindingFlags.NonPublic;
   typeof(Prototype).GetMethod("DropBombEquipmentOnDeath",f).Invoke(g,new object[]{0});typeof(Prototype).GetMethod("SyncBombEquipmentVisuals",f).Invoke(g,null);
   var kits=(System.Collections.Generic.List<GameObject>)typeof(Prototype).GetField("kitDummies",f).GetValue(g);if(kits.Count!=1||!kits[0].activeSelf)throw new Exception("Kit model missing");

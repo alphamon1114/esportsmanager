@@ -15,7 +15,7 @@ namespace FpsManager
  }
  public sealed class GroundWeapon
  {
-  public string weapon; public WeaponAmmo ammo; public Vector3 position; public int owner,receiver=-1; public float delivery;
+  public string weapon; public WeaponAmmo ammo; public Vector3 position; public int owner,receiver=-1,recoveryDonor=-1; public float delivery; public bool recoveryTrade;
  }
  public static class WeaponDropRules
  {
@@ -76,29 +76,29 @@ namespace FpsManager
   public bool TryPickUpWeapon(int i,GroundWeapon drop)
   {
    if(!AutomaticMatch||i<0||i>=10||!combat.Alive(i)||drop==null||!groundWeapons.Contains(drop)||drop.delivery>0)return false;
-   if(Stage!=MatchStage.Live&&Stage!=MatchStage.Buying)return false;
+   if(Stage!=MatchStage.Live&&Stage!=MatchStage.Buying&&Stage!=MatchStage.Result)return false;
    if((actors[i].transform.position-Vector3.up-drop.position).magnitude>1.5f)return false;
    var point=new Vector2(drop.position.x,100-drop.position.z);
    if(!elevation.Sight(MapPosition(i),PlayerHeight(i)+1.65f,point,drop.position.y+.15f))return false;
-   if(Stage==MatchStage.Live&&!SafeToCollect(i))return false;
+   if(Stage==MatchStage.Live&&!SafeToCollect(i)&&!ClutchRifleSafe(i,drop))return false;
    if(drop.receiver>=0&&drop.receiver!=i)return false;
    // Save the untouched secondary before changing active weapon; never refill it by swapping.
    if(holsteredAmmo[i]==null)holsteredAmmo[i]=new Dictionary<string,WeaponAmmo>();
    string held=combat.WeaponFor(i).id;holsteredAmmo[i][held]=combat.CaptureAmmo(i);
-   if(WeaponDropRules.Strength(held)>0)DropStoredWeapon(i,held);
+   // Replace only the incoming slot; an equipped pistol survives a primary pickup.
    bool primary=Array.IndexOf(WeaponCatalog.Ids,drop.weapon)>=6;
    foreach(var id in (string[])matchState[i].equipment.Clone())if(WeaponCatalog.Find(id)!=null&&(Array.IndexOf(WeaponCatalog.Ids,id)>=6)==primary)DropStoredWeapon(i,id);
    var items=new List<string>(matchState[i].equipment);items.Add(drop.weapon);matchState[i].equipment=items.ToArray();
-   combat.SetKnife(i,false);combat.EquipSaved(i,drop.weapon,drop.ammo);groundWeapons.Remove(drop);pickupDelay[i]=5;routeValid[i]=false;return true;
+   combat.SetKnife(i,false);combat.EquipSaved(i,drop.weapon,drop.ammo);groundWeapons.Remove(drop);pickupDelay[i]=5;routeValid[i]=false;RecoveryDelivered(i,drop);return true;
   }
   bool CollectNearbyWeapon(int i,PlayerObjective order,float dt)
   {
-   if(!AutomaticMatch)return false;pickupDelay[i]=Mathf.Max(0,pickupDelay[i]-dt);
+   if(!AutomaticMatch||(clutchMode[i]&&clutchUrgent[i]))return false;pickupDelay[i]=Mathf.Max(0,pickupDelay[i]-dt);
    if(pickupDelay[i]>0||!SafeToCollect(i)||combat.Health(i)<30||order.task==PlayerTask.PlantBomb||order.task==PlayerTask.Defuse||order.task==PlayerTask.RecoverBomb||order.task==PlayerTask.Retake||order.task==PlayerTask.FallBack)return false;
    GroundWeapon best=null;float distance=6;
    foreach(var item in groundWeapons)
    {
-    if(item.owner==i||item.receiver>=0||item.delivery>0)continue;
+    if(item.owner==i||item.receiver>=0||item.delivery>0||ClutchKeepsRifle(i,item.weapon))continue;
     // Deliberately never inspect item.ammo here: ammunition is discovered only after pickup.
     if(!WeaponDropRules.Wants(combat.WeaponFor(i).id,combat.Magazine(i),combat.SpareMagazines(i),item.weapon))continue;
     float d=(actors[i].transform.position-Vector3.up-item.position).magnitude;if(d>=distance||Mathf.Abs(PlayerHeight(i)-item.position.y)>.4f)continue;
@@ -137,7 +137,7 @@ namespace FpsManager
   {
    foreach(var item in groundWeapons)if(item.receiver<0)
    {
-    var point=new Vector2(item.position.x,100-item.position.z);float floor=ElevationMap.Ground(point);
+    var point=new Vector2(item.position.x,100-item.position.z);float floor=MapFloor(point,item.position.y);
     foreach(var solid in elevation.Solids)if(ElevationMap.Inside(solid.area,point)&&solid.top<=item.position.y+.1f)floor=Mathf.Max(floor,solid.top);
     var p=item.position;p.y=Mathf.Max(floor,p.y-8*dt);item.position=p;
    }

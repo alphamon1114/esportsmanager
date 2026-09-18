@@ -14,6 +14,8 @@ namespace FpsManager
         int phase,pass;
         float timer,total,cooldown;
         public bool InformationAllowed=true;
+        public bool SniperMode;
+        public void Cancel() { phase=0;pendingMiss=false;cooldown=1.5f; }
         public int Completed { get; private set; }
         public bool Active { get { return phase!=0; } }
                 public int Evasions { get; private set; }
@@ -80,7 +82,7 @@ namespace FpsManager
                 if(!found) return false;
                 look=probe; goal=order.destination; pass=0; total=0;
                 // Visible combat starts by ducking. Unseen entry starts with a short peek.
-                phase=contact||(proactive&&ambush)?3:1; timer=0;
+                phase=contact&&!SniperMode||(proactive&&ambush&&!SniperMode)?3:1; timer=0;
             }
             if(contact) look=probe; // Follow new team observations, never a stale fixed aim point.
             total+=dt;
@@ -100,7 +102,7 @@ namespace FpsManager
             target=phase==1||phase==2?exposed:home;
             if(!nav.Clear(position,target)) { phase=0; pendingMiss=false; cooldown=1; return false; }
             if(Vector2.Distance(position,target)>.12f) return true;
-            if(phase==1) { phase=2; timer=proactive&&!contact?.22f+rng.Next01()*.22f:.65f+rng.Next01()*.3f; }
+            if(phase==1) { phase=2; timer=SniperMode?1.2f+rng.Next01()*.8f:proactive&&!contact?.22f+rng.Next01()*.22f:.65f+rng.Next01()*.3f; }
             else if(phase==3) { phase=4; timer=proactive&&!contact?(ambush?1.3f+composure*1.5f:.5f)+rng.Next01()*.8f:.25f+rng.Next01()*(.2f+.4f*skill); }
             else
             {
@@ -108,7 +110,7 @@ namespace FpsManager
                 if(timer<=0)
                 {
                     if(phase==2) phase=3;
-                    else if(++pass<2) phase=1;
+                    else if(++pass<(SniperMode?1:2)) phase=1;
                     else { phase=0; Completed++; cooldown=proactive?2+rng.Next01()*3:7+rng.Next01()*3; return false; }
                 }
             }

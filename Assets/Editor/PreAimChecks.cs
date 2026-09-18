@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
 using FpsManager;
@@ -36,7 +36,8 @@ public static class PreAimChecks
    }
   Check(hiddenHigh>hiddenLow,"composure did not extend hidden wait");
   var c=new CombatSystem(new CombatSettings(),new WeaponProfile(),2);c.FeetHeight=i=>0;
-  c.PreAimHeight(0,3,10,1,80);float up=c.AimElevation(0);c.PreAimHeight(0,0,10,1,80);Check(up>0&&c.AimElevation(0)<0,"stale vertical aim did not reset to expected surface");
+  c.PreAimHeight(0,3,10,1,80);float up=c.AimElevation(0);c.PreAimHeight(0,0,10,1,80);Check(up>0&&Mathf.Abs(c.AimElevation(0))<1,"stale vertical aim did not reset to expected surface");
+  c.PreAimHeight(0,0,0,1,80);Check(Mathf.Abs(c.AimElevation(0))<1,"nearby aim anchor points at ground");
   EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);var g=new GameObject("Natural preaim").AddComponent<Prototype>();g.Initialize();g.StartMatch();int peekTicks=0,shotFrames=0;float distance=0;
   var flags=BindingFlags.Instance|BindingFlags.NonPublic;var previous=g.MapPosition(0);
   for(int frame=0;frame<1400;frame++)

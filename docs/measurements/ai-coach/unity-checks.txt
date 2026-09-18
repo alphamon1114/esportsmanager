@@ -1,0 +1,6 @@
+AI_COACH_ALL_OK nine matchups, no hidden plan input, sparse info, counter selection, own gear, deterministic seed, two timeouts, actual opposing formation
+SIDE_TACTIC_ALL_OK six plans, formations, utility preparation, no rush lurker, mid win/site commit/loss fallback, independent saved plans, live lock
+MATCH_FLOW_ALL_OK 5s result / 3s buy, automatic rounds, rewards, timeout queue/limit/expiry, strategy lock/application, halftime, map end, deuce rules, buying, new map
+PREAIM_ALL_OK future angles, fixed world point, no-contact hold/lurk patrol, real cover, hidden timing, urgent release, height reset; natural peek ticks=607 rounds=2
+COACH_UNITY_OK
+[ExitDontLaunchBugReporter] Exiting without the bug reporter. Application will exit with return code 0

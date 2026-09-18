@@ -7,7 +7,8 @@ namespace FpsManager
     {
         Animator animator;
         Transform socket;
-        Transform upperSpine; public float AimElevation;
+        Transform upperSpine; public float AimElevation; public bool Crouched;
+        readonly Transform[] thighs=new Transform[2],shins=new Transform[2],feet=new Transform[2];
         GameObject held;
         DualWieldVisual dual;
         string weaponId;
@@ -20,7 +21,7 @@ namespace FpsManager
             if(initialized)return;
             initialized=true;previous=transform.position;
             animator=GetComponentInChildren<Animator>();
-            foreach(var t in GetComponentsInChildren<Transform>(true)){if(t.name=="Socket_RightHand")socket=t;if(t.name=="mixamorig:Spine2")upperSpine=t;}
+            foreach(var t in GetComponentsInChildren<Transform>(true)){if(t.name=="Socket_RightHand")socket=t;if(t.name=="mixamorig:Spine2")upperSpine=t;for(int leg=0;leg<2;leg++){string side=leg==0?"Left":"Right";if(t.name=="mixamorig:"+side+"UpLeg")thighs[leg]=t;if(t.name=="mixamorig:"+side+"Leg")shins[leg]=t;if(t.name=="mixamorig:"+side+"Foot")feet[leg]=t;}}
         }
         public void SetState(bool living,string id,bool ct)
         {
@@ -80,6 +81,11 @@ namespace FpsManager
             if(distance>2||!alive)speed=0;
             VisualSpeed=Mathf.MoveTowards(VisualSpeed,Mathf.Min(speed,5),Time.deltaTime*30);
             if(animator!=null&&alive)animator.SetFloat("Speed",VisualSpeed);
+            if(alive&&Crouched)for(int leg=0;leg<2;leg++){
+                if(thighs[leg]!=null)thighs[leg].rotation=Quaternion.AngleAxis(-65,transform.right)*thighs[leg].rotation;
+                if(shins[leg]!=null)shins[leg].rotation=Quaternion.AngleAxis(130,transform.right)*shins[leg].rotation;
+                if(feet[leg]!=null)feet[leg].rotation=Quaternion.AngleAxis(-65,transform.right)*feet[leg].rotation;
+            }
             if(alive&&upperSpine!=null&&Mathf.Abs(AimElevation)>.01f)upperSpine.rotation=Quaternion.AngleAxis(-AimElevation,transform.right)*upperSpine.rotation;
         }
     }

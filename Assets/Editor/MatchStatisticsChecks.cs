@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reflection;
 using FpsManager;
 using UnityEngine;
@@ -24,14 +24,17 @@ public static class MatchStatisticsChecks
   boundary.Begin(teams,0);boundary.Damage(0,5,.1f);boundary.Kill(new KillEvent{killer=1,victim=5},1);Check(boundary.Result(0).assists==0,"assist damage carried across rounds");
   boundary.Begin(teams,0);boundary.Damage(0,5,50);boundary.Kill(new KillEvent{killer=1,victim=5},1);boundary.Kill(new KillEvent{killer=1,victim=5},1);
   Check(boundary.Result(0).assists==1&&boundary.Result(0,1).assists==1&&boundary.Result(1).kills==3,"50 boundary/live update/duplicate kill");
-  EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);var game=new GameObject("Stats integration").AddComponent<Prototype>();game.Initialize();game.StartMatch();game.AdvanceFrame(3.01f);
+  EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);var game=new GameObject("Stats integration").AddComponent<Prototype>();game.Initialize();game.StartMatch();game.AdvanceFrame(Prototype.BuySeconds+.01f);
   var gun=WeaponCatalog.Find("awp");game.Combat.Equip(0,gun);
   typeof(CombatSystem).GetMethod("ApplyHit",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(game.Combat,new object[]{0,5,HitRegion.Head});
   Check(game.Statistics.Result(0).damage==100&&game.Statistics.Result(0).kills==1,"overkill clamp/live events");
   for(int round=0;round<9;round++)
   {
    typeof(RoundDirector).GetMethod("End",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(game.Director,new object[]{game.CounterTerroristTeam==0?RoundOutcome.TimeExpired:RoundOutcome.CounterTerroristsEliminated});
-   game.AdvanceFrame(.01f);game.AdvanceFrame(3.01f);if(round<8)game.AdvanceFrame(3.01f);
+   game.AdvanceFrame(.01f);game.AdvanceFrame(5.01f);   if(round<8){game.AdvanceFrame(Prototype.BuySeconds+.01f);
+    if(game.Stage==MatchStage.Timeout){int completed=game.CompletedRounds;Check(game.OpponentTimeout,"unexpected timeout requester");game.AdvanceFrame(30.01f);Check(game.CompletedRounds==completed,"timeout counted as round");game.AdvanceFrame(.01f);}
+    Check(game.Stage==MatchStage.Live,"next round did not resume after buy/AI timeout");
+   }
   }
   Check(game.Stage==MatchStage.Finished&&game.Statistics.Result(0).rounds==9&&game.Statistics.Result(0).kills==1,"full map aggregation");
   Check(game.Statistics.Result(0,1).rounds==8&&game.Statistics.Result(0,2).rounds==1,"halftime split");

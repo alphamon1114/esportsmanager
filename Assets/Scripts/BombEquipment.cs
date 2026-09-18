@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 namespace FpsManager
@@ -55,7 +55,11 @@ namespace FpsManager
    if(!AutomaticMatch)return;
    director.RandomizeCarrier(roundSeed,teamIndex,ctTeam);
    director.HasDefuseKit=i=>matchState[i].defuseKit;
-   director.BombReachable=(i,p)=>Mathf.Abs(PlayerHeight(i)-(director.BombDropped?droppedBombHeight:director.Carrier>=0?PlayerHeight(director.Carrier):0))<1&&elevation.Sight(MapPosition(i),PlayerHeight(i)+1.65f,p,(director.BombDropped?droppedBombHeight:0)+.3f);
+   director.DefuseSafe=SafeToDefuse;
+   director.PreferredDefuser=ChooseTrustedDefuser;
+   combat.TargetPriority=PostPlantTargetPriority;
+   combat.InteractionBusy=i=>director.Phase==RoundPhase.PostPlant&&director.Defuser==i&&director.DefuseProgress>0&&(director.CommittedDefuse||SafeToDefuse(i));
+   director.BombReachable=(i,p)=>Mathf.Abs(PlayerHeight(i)-(director.BombDropped?droppedBombHeight:director.Carrier>=0?PlayerHeight(director.Carrier):BombFloor()))<1&&elevation.Sight(MapPosition(i),PlayerHeight(i)+1.65f,p,(director.BombDropped?droppedBombHeight:BombFloor())+.3f);
   }
   void PlanKits()
   {
@@ -78,7 +82,7 @@ namespace FpsManager
   void ClearBombEquipment(){groundKits.Clear();droppedBombHeight=0;SyncBombEquipmentVisuals();}
   float ItemFloor(Vector3 p)
   {
-   var point=new Vector2(p.x,100-p.z);float height=ElevationMap.Ground(point);
+   var point=new Vector2(p.x,100-p.z);float height=MapFloor(point,p.y);
    foreach(var s in elevation.Solids)if(ElevationMap.Inside(s.area,point)&&s.top<=p.y+.1f)height=Mathf.Max(height,s.top);return height;
   }
   void TickBombEquipment(float dt)
@@ -119,7 +123,7 @@ namespace FpsManager
    {
     bombDummy.SetActive(show);
     if(show&&director.Carrier>=0){var actor=actors[director.Carrier].transform;bombDummy.transform.position=actor.position+Vector3.up*.1f-actor.forward*.35f;bombDummy.transform.rotation=actor.rotation;foreach(var t in bombDummy.GetComponentsInChildren<Transform>())t.gameObject.layer=director.Carrier==selected?12:11;}
-    else if(show){bombDummy.transform.position=World(director.BombPosition,(director.BombDropped?droppedBombHeight:0)+.14f);bombDummy.transform.rotation=Quaternion.Euler(90,0,0);foreach(var t in bombDummy.GetComponentsInChildren<Transform>())t.gameObject.layer=11;}
+    else if(show){bombDummy.transform.position=World(director.BombPosition,(director.BombDropped?droppedBombHeight:BombFloor())+.14f);bombDummy.transform.rotation=Quaternion.Euler(90,0,0);foreach(var t in bombDummy.GetComponentsInChildren<Transform>())t.gameObject.layer=11;}
    }
    while(kitDummies.Count<groundKits.Count)kitDummies.Add(BombDummy("Defuse kit dummy",new Color(.1f,.35f,.7f),new Vector3(.32f,.16f,.22f)));
    for(int i=0;i<kitDummies.Count;i++){kitDummies[i].SetActive(i<groundKits.Count);if(i<groundKits.Count)kitDummies[i].transform.position=groundKits[i]+Vector3.up*.1f;}

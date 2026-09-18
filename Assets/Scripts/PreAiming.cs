@@ -7,6 +7,7 @@ namespace FpsManager
   public Vector2 VisibleAimPoint(Vector2 position,Vector2 intended)
   {
    if(SightClear(position,intended))return intended;
+   if(AimOverride!=null)return AimOverride(position,intended);
    Vector2 best=position;float score=float.MinValue;var forward=(intended-position).normalized;
    foreach(var r in sightBlockers)
     foreach(var p in new[]{new Vector2(r.xMin-.12f,r.yMin-.12f),new Vector2(r.xMin-.12f,r.yMax+.12f),new Vector2(r.xMax+.12f,r.yMin-.12f),new Vector2(r.xMax+.12f,r.yMax+.12f)})
@@ -59,8 +60,8 @@ namespace FpsManager
   public void PreAimHeight(int i,float targetFeet,float distance,float dt,int aim)
   {
    if(FeetHeight==null||Engaging(i))return;
-   // Matches the existing firing reference; the head/body offset remains in SampleShot.
-   float desired=Mathf.Atan2(targetFeet-FeetHeight(i)-.65f,Mathf.Max(1,distance))/Mathf.Deg2Rad;
+   // Pre-aim at a standing head (1.70m) from the 1.65m eye, not a feet/body reference.
+   float desired=Mathf.Atan2(targetFeet-FeetHeight(i)+.05f,Mathf.Max(4,distance))/Mathf.Deg2Rad;
    float change=(65+Mathf.Clamp01(aim/100f)*95)*dt;aimElevation[i]+=Mathf.Clamp(desired-aimElevation[i],-change,change);
   }
  }
@@ -75,7 +76,7 @@ namespace FpsManager
   bool AlignBeforeEntry(int i,PlayerObjective order,float dt)
   {
    if(!AutomaticMatch||!order.valid||order.disengage||combat.Engaging(i)||(director.Clock<15&&SafeForTravel(i))||combat.KnifeOut(i))return false;
-   var desired=movementAim[i].Choose(i,MapPosition(i),navigation.VisibleAimPoint(MapPosition(i),ExpectedAngle(i,order,0)),teamIndex,vision);
+   var desired=SharedAimDirection(i,navigation.VisibleAimPoint(MapPosition(i),ExpectedAngle(i,order,0)));
    if(desired.sqrMagnitude<1||Vector2.Dot(MapFacing(i).normalized,desired.normalized)>.7f)return false;
    FaceWatch(i,desired,dt);moveSpeed[i]=0;arrived[i]=true;return true;
   }

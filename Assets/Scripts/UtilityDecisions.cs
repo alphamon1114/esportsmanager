@@ -48,6 +48,7 @@ namespace FpsManager
             var sound=Sounds.Heard(i);
             if(!evidence&&sound.known&&sound.age<=1.2f&&sound.kind!=SoundKind.Beep&&sound.kind!=SoundKind.Throw)
             { evidence=true;threat=sound.position; }
+            if(!evidence&&order.plannedExecute){evidence=true;threat=order.utilityTarget;}
             if(!evidence) return;
             float reach=Vector2.Distance(position,threat);if(reach<5||reach>30) return;
             Vector2 toward=(threat-position).normalized, travel=order.destination-position;
@@ -64,7 +65,13 @@ namespace FpsManager
             bool entry=order.task==PlayerTask.PushSite||order.task==PlayerTask.Retake||order.task==PlayerTask.Trade;
             bool crossing=travel.magnitude>4&&Mathf.Abs(CombatSystem.SignedAngle(toward,travel))>40;
             var equipment=new List<string>(inventory.equipment);
-            float error=(100-Mathf.Clamp(player.stats.utility,0,100))/100f*2;
+                        float error=(100-Mathf.Clamp(player.stats.utility,0,100))/100f*2;
+            if(order.plannedExecute&&equipment.Contains("smoke")){
+                var block=order.utilityBlockTarget;float distance=Vector2.Distance(position,block);
+                if(distance>6&&distance<=30&&!PendingNear(block,true)&&SegmentDistance(block,position,order.destination)>6&&navigation.Clear(block,block)&&navigation.SightClear(position,block)){
+                    ThrowPlanned(i,position,block,true,player,inventory,equipment);return;
+                }
+            }
             // Smoke blocks the approach or a hostile crossfire while we change space.
             if(equipment.Contains("smoke")&&(retreat||(defend&&pressure)||(entry&&crossing&&reach>18)))
             {

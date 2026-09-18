@@ -1,0 +1,6 @@
+CONDITION_ALL_OK daily deterministic tiers, tournament days, mental mitigation, legacy migration, seven-second own-team strategy window, battle lock, shared timeout choices, base isolation, live stat refresh, cap and map reset
+HUD_CAPTURE buy-ko.png 1600x919
+HUD_CAPTURE timeout-ko.png 1600x919
+HUD_CAPTURE timeout-en.png 1600x919
+HUD_CAPTURE timeout-selected-ko.png 1600x919
+CONDITION_HUD_OK

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,7 +7,9 @@ namespace FpsManager
     // One-unit navigation grid; obstacles include clearance for the capsule radius.
     public sealed partial class DeploymentNavigation
     {
-        public Func<Vector2,Vector2,bool> MovementFilter;
+        public Func<Vector2,Vector2,bool> MovementFilter,ClearOverride,SightOverride;
+        public Func<Vector2,Vector2,List<Vector2>> RouteOverride;
+        public Func<Vector2,Vector2,Vector2> AimOverride;
         readonly List<Rect> obstacles = new List<Rect>();
         readonly List<Rect> sightBlockers = new List<Rect>();
         readonly bool[] open = new bool[10000];
@@ -23,13 +25,14 @@ namespace FpsManager
         static Vector2 Point(int i) { return new Vector2(i%100+.5f,i/100+.5f); }
         public bool Clear(Vector2 a, Vector2 b)
         {
+            if(ClearOverride!=null)return ClearOverride(a,b);
             if(a.x<.7f||a.y<.7f||a.x>99.3f||a.y>99.3f||b.x<.7f||b.y<.7f||b.x>99.3f||b.y>99.3f) return false;
             return !Blocked(obstacles,a,b)&&(MovementFilter==null||MovementFilter(a,b));
         }
         // Line of sight uses the raw geometry: movement clearance would wrongly cut
         // sight lines that run close along a wall face. Every Wall and Cover box blocks
         // sight completely; there is no height model and no partial cover yet.
-        public bool SightClear(Vector2 a, Vector2 b) { return !Blocked(sightBlockers,a,b); }
+        public bool SightClear(Vector2 a, Vector2 b) { return SightOverride!=null?SightOverride(a,b):!Blocked(sightBlockers,a,b); }
         static bool Blocked(List<Rect> rects, Vector2 a, Vector2 b)
         {
             foreach(var r in rects)
@@ -65,6 +68,7 @@ namespace FpsManager
         }
         public List<Vector2> Route(Vector2 start,Vector2 destination,List<Vector2> reserved)
         {
+            if(RouteOverride!=null)return RouteOverride(start,destination);
             int source=Nearest(start,true);
             if(source<0) throw new InvalidOperationException("Spawn is inside an obstacle.");
             var parents=new int[10000]; for(int i=0;i<parents.Length;i++) parents[i]=-2;

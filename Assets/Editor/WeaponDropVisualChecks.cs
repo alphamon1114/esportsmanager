@@ -12,7 +12,7 @@ public static class WeaponDropVisualChecks
  {
   WeaponDropChecks.Run();
   EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
-  var g=new GameObject("Drop preview").AddComponent<Prototype>();g.Initialize();g.StartMatch();g.AdvanceFrame(3.01f);
+  var g=new GameObject("Drop preview").AddComponent<Prototype>();g.Initialize();g.StartMatch();g.AdvanceFrame(Prototype.BuySeconds+.01f);
   var f=BindingFlags.NonPublic|BindingFlags.Instance;var actors=(List<GameObject>)typeof(Prototype).GetField("actors",f).GetValue(g);
   g.MatchState(0).equipment=new[]{"usp_s","ak_47"};g.Combat.EquipSaved(0,"ak_47",new WeaponAmmo{rounds=7,spares=1});g.DropWeapon(0);
   typeof(Prototype).GetMethod("SyncGroundWeaponVisuals",f).Invoke(g,null);

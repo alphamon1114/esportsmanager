@@ -27,7 +27,7 @@ public static class ArmorChecks
   typeof(CombatSystem).GetMethod("ApplyHit",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(combat,new object[]{0,1,HitRegion.Body});
   Near(combat.Health(1),72.1f,"actual combat armor path");Near(state.armor,95.95f,"persistent wear");combat.Reset(1);Near(state.armor,95.95f,"reset free armor refill");
   EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
-  var game=new GameObject("Armor integration").AddComponent<Prototype>();game.Initialize();game.StartMatch();game.AdvanceFrame(3.01f);
+  var game=new GameObject("Armor integration").AddComponent<Prototype>();game.Initialize();game.StartMatch();game.AdvanceFrame(Prototype.BuySeconds+.01f);
   Check(game.MatchState(0).armor==100&&!game.MatchState(0).helmet&&game.MatchState(0).credits==150,"pistol round buys vest");
   ArmorRules.Damage(game.MatchState(0),ak,HitRegion.Body);game.PrepareNextRound();Near(game.MatchState(0).armor,95.95f,"round retains worn armor");
   foreach(string id in WeaponCatalog.Ids)Check(WeaponCatalog.Find(id).armorRatio>0&&WeaponCatalog.Find(id).armorRatio<=2,"weapon ratio "+id);

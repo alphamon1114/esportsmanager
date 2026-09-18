@@ -1,0 +1,11 @@
+SIDE_TACTIC_ALL_OK six plans, formations, utility preparation, no rush lurker, mid win/site commit/loss fallback, independent saved plans, live lock
+UTILITY_DECISIONS_ALL_OK defensive lane, retreat, crossfire, safe entry flash, no friendly flash, no own-lane smoke, wiped team, stale/beep/throw/no intel, interaction priority, duplicate
+MATCH_FLOW_ALL_OK 5s result / 3s buy, automatic rounds, rewards, timeout queue/limit/expiry, strategy lock/application, halftime, map end, deuce rules, buying, new map
+PREAIM_ALL_OK future angles, fixed world point, no-contact hold/lurk patrol, real cover, hidden timing, urgent release, height reset; natural peek ticks=607 rounds=2
+SIDE_UNITY_OK
+[ExitDontLaunchBugReporter] Exiting without the bug reporter. Application will exit with return code 0
+SIDE_TACTIC_ALL_OK six plans, formations, utility preparation, no rush lurker, mid win/site commit/loss fallback, independent saved plans, live lock
+IGL_ALL_OK: valid orders, deterministic replay, seed variety, both sides, manual overrides replaced.
+MATCH_FLOW_ALL_OK 5s result / 3s buy, automatic rounds, rewards, timeout queue/limit/expiry, strategy lock/application, halftime, map end, deuce rules, buying, new map
+SIDE_FINAL_UNITY_OK
+[ExitDontLaunchBugReporter] Exiting without the bug reporter. Application will exit with return code 0

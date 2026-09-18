@@ -11,10 +11,10 @@ namespace FpsManager
    if(cost==0||state.credits<cost)return false;
    state.credits-=cost;state.armor=100;if(helmet)state.helmet=true;return true;
   }
-  public static float Damage(PlayerMatchState state,WeaponProfile gun,HitRegion region)
+  public static float Damage(PlayerMatchState state,WeaponProfile gun,HitRegion region,float scale=1)
   {
    if(region==HitRegion.Miss)return 0;
-   float raw=region==HitRegion.Head?gun.HeadDamage:gun.damage;
+   float raw=(region==HitRegion.Head?gun.HeadDamage:gun.damage)*scale;
    if(state.armor<=0||(region==HitRegion.Head&&!state.helmet))return raw;
    float health=raw*Math.Max(0,Math.Min(1,gun.armorRatio*.5f));
    float spent=(raw-health)*.5f;
@@ -29,9 +29,9 @@ namespace FpsManager
   public void BindProtection(int i,PlayerMatchState state){protection[i]=state;}
   public float Armor(int i){return protection[i]==null?0:protection[i].armor;}
   public bool Helmet(int i){return protection[i]!=null&&protection[i].helmet;}
-  float ProtectedDamage(int i,WeaponProfile gun,HitRegion region)
+  float ProtectedDamage(int i,WeaponProfile gun,HitRegion region,float scale=1)
   {
-   return protection[i]==null?(region==HitRegion.Head?gun.HeadDamage:gun.damage):ArmorRules.Damage(protection[i],gun,region);
+   return protection[i]==null?(region==HitRegion.Head?gun.HeadDamage:gun.damage)*scale:ArmorRules.Damage(protection[i],gun,region,scale);
   }
  }
 }

@@ -25,7 +25,7 @@ public static class ElevationChecks
   EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);var game=new GameObject("Vertical checks").AddComponent<Prototype>();game.Initialize();
   var flags=BindingFlags.NonPublic|BindingFlags.Instance;
   Check(!(bool)typeof(Prototype).GetField("fogOfWar",flags).GetValue(game),"observer map still hides enemy");
-  game.StartMatch();game.AdvanceFrame(3.01f);Check(game.ElevatedMatch&&game.Combat.FeetHeight!=null,"automatic match height disabled");
+  game.StartMatch();game.AdvanceFrame(Prototype.BuySeconds+.01f);Check(game.ElevatedMatch&&game.Combat.FeetHeight!=null,"automatic match height disabled");
   var nav=game.Navigation;
   foreach(var link in new ElevationMap().Links)Check(nav.Clear(link.entry,link.entry),"entry obstructed "+link.name);
   var actors=(System.Collections.Generic.List<GameObject>)typeof(Prototype).GetField("actors",flags).GetValue(game);

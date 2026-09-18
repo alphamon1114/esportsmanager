@@ -1,0 +1,4 @@
+﻿EQUIPMENT_EXCHANGE_ALL_OK visible recent damage, urgency, no invented pistol, slot and ammo preservation, AWP priority, next-spawn exchange, payer funds, no duplicate delivery
+WEAPON_DROP_ALL_OK manual/death, exact ammo, reload, empty unknown gun, exchange, single claim, safety, floor, round reset, ace support and eco reserve
+ECONOMY_ALL_OK team plans, full/force/eco, side helmet rules, favorite pistol, 2-3 deagles, inventory reuse, utility limits, budget boundaries
+MATCH_FLOW_ALL_OK 5s result / 3s buy, automatic rounds, rewards, timeout queue/limit/expiry, strategy lock/application, halftime, map end, deuce rules, buying, new map

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 namespace FpsManager
@@ -42,6 +42,7 @@ namespace FpsManager
             return steps>=3||landings>=2;
         }
         public readonly int[] Emitted=new int[7];
+        public Func<int,float> SourceHeight;
         public HeardSound Heard(int i) { return heard[i]; }
         public int TeamCues(int team) { return shared[team].Count; }
         public void Emit(int source,Vector2 position,SoundKind kind) { pending.Add(new SoundPulse{source=source,position=position,kind=kind}); Emitted[(int)kind]++; }
@@ -63,7 +64,9 @@ namespace FpsManager
                 if(!alive[listener]||listener==pulse.source) continue;
                 if(pulse.source>=0&&teams[listener]==teams[pulse.source]) continue;
                 float range=Range(pulse.kind)*(navigation.SightClear(positions[listener],pulse.position)?1:.7f);
-                if(Vector2.Distance(positions[listener],pulse.position)>range) continue;
+                float acousticDistance=Vector2.Distance(positions[listener],pulse.position);
+                if(SourceHeight!=null){float dy=SourceHeight(listener)-SourceHeight(pulse.source);acousticDistance=Mathf.Sqrt(acousticDistance*acousticDistance+dy*dy);}
+                if(acousticDistance>range) continue;
                 // Coarse 4-unit acoustic region rather than a precise tracked position.
                 Vector2 estimate=new Vector2(Mathf.Floor(pulse.position.x/4)*4+2,Mathf.Floor(pulse.position.y/4)*4+2);
                 int listenerTeam=teams[listener];
@@ -194,7 +197,7 @@ namespace FpsManager
             // Hold the angle. There used to be a random 2.5 unit wander here every second;
             // it kept guards away from their holding position. Navigation and aim are
             // now independent, but guards still need a reason to leave their cover.
-            if(!urgent&&(order.task==PlayerTask.DefendSite||order.task==PlayerTask.HoldSite))
+            if(!urgent&&!order.stackHold&&(order.task==PlayerTask.DefendSite||order.task==PlayerTask.HoldSite))
             {
                 if(noise.known&&Vector2.Distance(order.destination,noise.position)<22)
                 {
@@ -211,7 +214,7 @@ namespace FpsManager
         }
         PlayerObjective ApplyPosition(int i,PlayerObjective order,bool urgent)
         {
-            if(!urgent&&(order.task==PlayerTask.DefendSite||order.task==PlayerTask.HoldSite))
+            if(!urgent&&!order.stackHold&&(order.task==PlayerTask.DefendSite||order.task==PlayerTask.HoldSite))
                 order.destination=order.hasCover&&coverUntil[i]>0?order.cover:order.destination+offset[i];
             return order;
         }
@@ -220,9 +223,8 @@ namespace FpsManager
             bombPulse-=dt; if(bombPulse>0) return; bombPulse=.75f;
             if(director.PlantProgress>0&&director.Carrier>=0) Sounds.Emit(director.Carrier,positions[director.Carrier],SoundKind.Plant);
             if(director.PlantedSite>=0) Sounds.Emit(-1,director.BombPosition,SoundKind.Beep);
-            if(director.DefuseProgress>0)
-                for(int i=0;i<10;i++) if(team[i]==ctTeam&&combat.Alive(i)&&Vector2.Distance(positions[i],director.BombPosition)<3)
-                { Sounds.Emit(i,positions[i],SoundKind.Defuse); break; }
+            if(director.DefuseProgress>0&&director.Defuser>=0)
+                Sounds.Emit(director.Defuser,positions[director.Defuser],SoundKind.Defuse);
         }
     }
 }

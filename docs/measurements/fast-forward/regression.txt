@@ -1,0 +1,104 @@
+﻿DEPLOYMENT_CASE_OK side=0 zone=-1
+DEPLOYMENT_CASE_OK side=0 zone=0
+DEPLOYMENT_CASE_OK side=0 zone=1
+DEPLOYMENT_CASE_OK side=0 zone=2
+DEPLOYMENT_CASE_OK side=1 zone=-1
+DEPLOYMENT_CASE_OK side=1 zone=0
+DEPLOYMENT_CASE_OK side=1 zone=1
+DEPLOYMENT_CASE_OK side=1 zone=2
+DEPLOYMENT_ALL_OK: 8 configurations, both sides, obstacle clearance, locked orders, completion, POV selection.
+VISION_CASE_OK frontal
+VISION_CASE_OK field-of-view
+VISION_CASE_OK peripheral
+VISION_CASE_OK range
+VISION_CASE_OK obstruction
+VISION_CASE_OK recognition
+VISION_CASE_OK memory
+VISION_CASE_OK information-separation
+VISION_CASE_OK determinism
+VISION_ZONE_SIGHT B site -> Banana distance=34.2 sight=False
+VISION_ZONE_SIGHT B site -> Mid distance=47.4 sight=False
+VISION_ZONE_SIGHT B site -> Apartments distance=82.0 sight=False
+VISION_ZONE_SIGHT Mid / Arch -> Banana distance=41.6 sight=False
+VISION_ZONE_SIGHT Mid / Arch -> Mid distance=30.5 sight=False
+VISION_ZONE_SIGHT Mid / Arch -> Apartments distance=34.7 sight=False
+VISION_ZONE_SIGHT A site -> Banana distance=60.2 sight=False
+VISION_ZONE_SIGHT A site -> Mid distance=47.2 sight=False
+VISION_ZONE_SIGHT A site -> Apartments distance=30.6 sight=False
+VISION_ZONE_SIGHT_PAIRS 0 of 9
+VISION_ALL_OK: cone, peripheral range, max range, obstruction, recognition time, memory expiry, spawn information separation, determinism.
+COMBAT_CASE_OK resolution shots=4 hits=4 seconds=0.55
+COMBAT_CASE_OK determinism
+COMBAT_CASE_OK seed-sensitivity
+COMBAT_CASE_OK obstruction
+COMBAT_CASE_OK range
+COMBAT_CASE_OK no-contact-no-damage
+COMBAT_CASE_OK fairness firstPlayerWins=51.0%
+COMBAT_CASE_OK aim-at-range aim98Wins=76.5% at 54.9 units
+COMBAT_ALL_OK: resolution, seed replay, seed sensitivity, obstruction, range, no contact means no damage, fairness, aim at range.
+ROUND_CASE_OK termination 12 rounds
+ROUND_CASE_OK determinism
+ROUND_CASE_OK outcome-variety 2 distinct outcomes
+ROUND_CASE_OK behaviour-present plant, fall back, rotate, retake
+ROUND_CASE_OK observed-information-only
+ROUND_CASE_OK bomb-explodes at 43.3s
+ROUND_CASE_OK bomb-defused at 13.2s
+ROUND_CASE_OK defender-facing 76% of killers were in front of the defender
+ROUND_CASE_OK cover-trade-entry-utility
+ROUND_CASE_OK engagement 38% of clear sight lines seen, 22% behind smoke
+ROUND_ALL_OK: termination, determinism, outcome variety, plant and fall back and rotate and retake all occur, observed information only, bomb explodes, bomb defused, defenders face the approach, cover and trade and entry utility all occur, enemies in sight engage.
+IGL_ALL_OK: valid orders, deterministic replay, seed variety, both sides, manual overrides replaced.
+RESET_CASE_OK seeded-spawn-permutation
+RESET_CASE_OK automatic-round-reset-and-persistence
+RESET_ALL_OK
+AI_CASE_OK seven-sound-types-range-memory-team-shared-no-vision
+AI_CASE_OK dead-players-keep-what-they-called-and-stop-listening
+AI_CASE_OK silent-walk-audible-run
+AI_CASE_OK real-gunfire-reload-resume
+AI_CASE_OK utility-consumption-effect-expiry
+AI_CASE_OK independent-player-launch
+AI_CASE_OK cover-persists-between-decisions-and-releases
+AI_CASE_OK peek-exposure-return-geometry-urgent-open-ground
+AI_CASE_OK movement-miss-response low=16 high=76 blocked-space-safe
+AI_ALL_OK
+MAGAZINE_ALL_OK: 18 guns, discard, duplicate request, timing, exhaustion, AI, reset
+ARMOR_ALL_OK damage, helmet, penetration, exhaustion, economy, combat, persistence, opening buy
+ECONOMY_ALL_OK team plans, full/force/eco, side helmet rules, favorite pistol, 2-3 deagles, inventory reuse, utility limits, budget boundaries
+WEAPON_DROP_ALL_OK manual/death, exact ammo, reload, empty unknown gun, exchange, single claim, safety, floor, round reset, ace support and eco reserve
+BOMB_EQUIPMENT_ALL_OK random T carrier, give/drop/recover, CT restriction, kit death/pickup, full-buy three kits, price, 5/10s timing, interruption and reset
+GUNFIRE_ALL_OK real-shot event, deterministic combat unchanged, aim-dependent nonzero recoil
+MATCH_STATS_ALL_OK damage clamp, assists, trades, survival, side splits, duplicate end, map finish, new map reset
+ELEVATION_ALL_OK floors, cover, mid ramp, observer map, aim skill, blocked shots, AI stairs/jump/return, spawn reset
+UTILITY_DECISIONS_ALL_OK defensive lane, retreat, crossfire, safe entry flash, no friendly flash, no own-lane smoke, wiped team, stale/beep/throw/no intel, interaction priority, duplicate
+MOVEMENT_AIM_STATIONARY_FIRE_OK shots=27
+MOVEMENT_AIM_ALL_OK strafe, backwards, fixed world point, no hidden tracking, stale expiry, stable focus, actual route, retreat, round reset
+ENGAGEMENT_FOCUS_ALL_OK crossing switches=0, continued fire, short occlusion, frozen memory/no hidden shot, release, death, urgent close threat, reset, single bounded yaw writer
+CLUTCH_ALL_OK deliberate stable angles/rear, normal-team exclusion, last survivor, safe AWP-AR exchange, hidden ammo, sidearm kept, no swap-back, travel/kit deadline, urgent release, reset
+THREAT_ALL_OK local priority, direct fight, reachable uncertainty, face-before-expose
+SIDE_TACTIC_ALL_OK six plans, formations, utility preparation, no rush lurker, mid win/site commit/loss fallback, independent saved plans, live lock
+AI_COACH_ALL_OK nine matchups, no hidden plan input, sparse info, counter selection, own gear, deterministic seed, two timeouts, actual opposing formation
+TOURNAMENT_ALL_OK 8/40, seed, 23-map bracket, BO5 champion, invalid saves, actual map recording, next map reset, two AI coaches, spectator lock, natural combat
+FRONT_MENU_ALL_OK random draws, saved owner, all eight controlled teams, language scope, menu freeze, overall
+SOURCE_MAP_OK de_dust2 verts=122106 tris=239917 areas=2242 links=6275 height=9.3472
+SOURCE_MAP_OK de_mirage verts=44157 tris=73286 areas=2544 links=6381 height=9.651999
+SOURCE_MAP_OK de_nuke verts=46009 tris=89563 areas=3040 links=7676 height=19.1516
+SOURCE_MAP_OK de_vertigo verts=41077 tris=66048 areas=2105 links=5321 height=10.668
+SOURCE_MAP_ALL_OK four real meshes/navs, coordinate heights, directed paths, invalid file rejection
+PREAIM_ALL_OK future angles, fixed world point, no-contact hold/lurk patrol, real cover, hidden timing, urgent release, height reset; natural peek ticks=607 rounds=2
+AWPER_ALL_OK shot-cover, stable world aim, concealed wait, bounded release, urgent task, weapon switch, open-ground fallback, reset
+EQUIPMENT_EXCHANGE_ALL_OK visible recent damage, urgency, no invented pistol, slot and ammo preservation, AWP priority, next-spawn exchange, payer funds, no duplicate delivery
+TRAVEL_WEAPON_ALL_OK lobby knife, 15s gate/contact exception, visible corner aim, safe travel/draw, measured speed 2.720001 -> 3.02, no knife fire, ammo preserved, reset
+BACKUP_SOUND_OK three-tracks, two-landings, dedup, expiry, no-own-no-launch-no-dead-intel
+BACKUP_LOSS_OK no-vision, single-and-two-deaths, mid-area, quiet-guard, silent-near-approach, expiry, reset
+BACKUP_ALL_OK preplant, nearest, quiet-site-guard, arrival, expiry, no-hidden-or-sound-headcount
+TACTICAL_MOVEMENT_ALL_OK both sides, independent lurker, staged advance, no hidden tracking, valid anchors, forward rotations, single death investigation, patrol, reset
+HITZONE_ALL_OK geometry, 18 weapon head/body damage, ammo, lethal hit, reset, inventory integration
+RECOIL_IMPACT_OK noRecoil=40 lowAim=5 highAim=26
+RECOIL_ALL_OK accumulation, recovery, reset, lethal exclusion, aimSprays=84 movementSprays=19
+SUSTAINED_FIRE_ALL_OK late hits /3000 aim50=338 aim85=768 aim100=1229 rested85=2341; early/late, near-range floor, recovery, kill transfer, magazine independence
+MATCH_HUD_ALL_OK actual kill/weapon snapshot, new-round clear, aborted round, all outcomes, side swaps, no double score
+MATCH_FLOW_ALL_OK 5s result / 3s buy, automatic rounds, rewards, timeout queue/limit/expiry, strategy lock/application, halftime, map end, deuce rules, buying, new map
+SPRAY_PATTERN_ALL_OK 18 patterns, first-shot zero, direction changes, seeded control error, aim ordering, nonzero residual
+SUPPRESSION_ALL_OK blind=112 smoke=112 probe=42 memory=112; no tracking, bounded burst, ammo, stale intel, walls, friendlies, actual kills, reset
+### suites failed: 0
+﻿

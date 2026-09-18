@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using FpsManager;
@@ -11,7 +11,7 @@ public static class BombEquipmentChecks
  static object Call(object o,string name,params object[] args){return o.GetType().GetMethod(name,F).Invoke(o,args);}
  public static void Run()
  {
-  EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);var g=new GameObject("Bomb kit checks").AddComponent<Prototype>();g.Initialize();g.StartMatch();g.AdvanceFrame(3.01f);
+  EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);var g=new GameObject("Bomb kit checks").AddComponent<Prototype>();g.Initialize();g.StartMatch();g.AdvanceFrame(Prototype.BuySeconds+.01f);
   var teams=new int[10];var pos=new Vector2[10];var actors=(List<GameObject>)typeof(Prototype).GetField("actors",F).GetValue(g);
   for(int i=0;i<10;i++){teams[i]=g.TeamIndexOf(i);pos[i]=g.MapPosition(i);}
   var d=g.Director;int ct=g.CounterTerroristTeam;var chosen=new HashSet<int>();
@@ -34,13 +34,13 @@ public static class BombEquipmentChecks
   g.PrepareNextRound();Check(g.GroundKitCount==0&&!d.BombDropped,"round ground cleanup");
   typeof(Prototype).GetProperty("CompletedRounds").SetValue(g,1,null);
   for(int i=0;i<10;i++){g.MatchState(i).credits=5000;g.MatchState(i).defuseKit=false;g.MatchState(i).armor=0;g.MatchState(i).helmet=false;g.MatchState(i).equipment=new[]{"glock_18"};g.Data.players[i].weaponPosition="rifler";}
-  Call(g,"StartBuying");g.AdvanceFrame(3.01f);int kits=0;
+  Call(g,"StartBuying");g.AdvanceFrame(Prototype.BuySeconds+.01f);int kits=0;
   for(int i=0;i<10;i++){if(g.MatchState(i).defuseKit){Check(teams[i]==ct,"T purchased kit");kits++;}Check(g.MatchState(i).credits>=0,"kit overspent");}Check(kits==3,"full CT did not buy three kits");
   var poor=new PlayerMatchState{credits=399};Check(!DefuseKitRules.Buy(poor)&&poor.credits==399,"unaffordable kit charge");poor.credits=400;Check(DefuseKitRules.Buy(poor)&&poor.credits==0&&!DefuseKitRules.Buy(poor),"kit cost/duplicate");
   // Actual planted-bomb handler, both timings and interrupted player changes.
   d=g.Director;typeof(RoundDirector).GetProperty("PlantedSite").SetValue(d,0,null);typeof(RoundDirector).GetProperty("BombPosition").SetValue(d,g.Layout.Sites[0],null);
   int ctPlayer=-1,ctOther=-1;for(int i=0;i<10;i++){pos[i]=new Vector2(5,5);if(teams[i]==ct){ctOther=ctPlayer;ctPlayer=i;}g.MatchState(i).defuseKit=false;}
-  d.InteractionAllowed=null;pos[ctPlayer]=d.BombPosition;
+  d.InteractionAllowed=null;d.DefuseSafe=null;pos[ctPlayer]=d.BombPosition;
   foreach(bool kit in new[]{false,true})
   {
    typeof(RoundDirector).GetProperty("Phase").SetValue(d,RoundPhase.PostPlant,null);typeof(RoundDirector).GetProperty("BombTimer").SetValue(d,40f,null);typeof(RoundDirector).GetProperty("DefuseProgress").SetValue(d,0f,null);g.MatchState(ctPlayer).defuseKit=kit;
@@ -50,6 +50,15 @@ public static class BombEquipmentChecks
   }
   typeof(RoundDirector).GetProperty("Phase").SetValue(d,RoundPhase.PostPlant,null);typeof(RoundDirector).GetProperty("BombTimer").SetValue(d,40f,null);typeof(RoundDirector).GetProperty("DefuseProgress").SetValue(d,3f,null);
   pos[ctPlayer]=new Vector2(5,5);pos[ctOther]=d.BombPosition;Call(d,"UpdatePlantedBomb",.1f,pos,teams,ct,g.Combat);Check(d.Defuser==ctOther&&d.DefuseProgress<.2f,"defuser change inherited progress");
+  // A later arrival (even with a kit) cannot steal an active defuse.
+  g.MatchState(ctOther).defuseKit=false;g.MatchState(ctPlayer).defuseKit=true;pos[ctPlayer]=d.BombPosition;
+  float progress=d.DefuseProgress;Call(d,"UpdatePlantedBomb",.1f,pos,teams,ct,g.Combat);
+  Check(d.Defuser==ctOther&&d.DefuseProgress>progress,"arriving kit owner stole active defuse");
+  d.InterruptDefuse(ctPlayer);Check(d.Defuser==ctOther,"non-owner cancelled defuse");
+  d.InterruptDefuse(ctOther);Check(d.Defuser<0&&d.DefuseProgress==0,"owner interruption retained progress");
+  d.DefuseSafe=i=>false;Call(d,"UpdatePlantedBomb",.1f,pos,teams,ct,g.Combat);Check(d.Defuser<0,"unsafe defuse started");
+  d.DefuseSafe=i=>true;Call(d,"UpdatePlantedBomb",.1f,pos,teams,ct,g.Combat);
+  Check(d.Defuser>=0&&g.Combat.Alive(carrier),"safe defuse required eliminating all T");
   Debug.Log("BOMB_EQUIPMENT_ALL_OK random T carrier, give/drop/recover, CT restriction, kit death/pickup, full-buy three kits, price, 5/10s timing, interruption and reset");
  }
 }

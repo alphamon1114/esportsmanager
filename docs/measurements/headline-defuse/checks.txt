@@ -1,0 +1,25 @@
+﻿TRUSTED_DEFUSE_ALL_OK selection, advantage, commitment, damage, death, observed identity, deadline and actual target switch
+PREAIM_ALL_OK future angles, fixed world point, no-contact hold/lurk patrol, real cover, hidden timing, urgent release, height reset; natural peek ticks=545 rounds=3
+ELEVATION_ALL_OK floors, cover, mid ramp, observer map, aim skill, blocked shots, AI stairs/jump/return, spawn reset
+ENGAGEMENT_FOCUS_ALL_OK crossing switches=0, continued fire, short occlusion, frozen memory/no hidden shot, release, death, urgent close threat, reset, single bounded yaw writer
+COMBAT_CASE_OK resolution shots=4 hits=4 seconds=0.55
+COMBAT_CASE_OK determinism
+COMBAT_CASE_OK seed-sensitivity
+COMBAT_CASE_OK obstruction
+COMBAT_CASE_OK range
+COMBAT_CASE_OK no-contact-no-damage
+COMBAT_CASE_OK fairness firstPlayerWins=51.0%
+COMBAT_CASE_OK aim-at-range aim98Wins=76.5% at 54.9 units
+COMBAT_ALL_OK: resolution, seed replay, seed sensitivity, obstruction, range, no contact means no damage, fairness, aim at range.
+ROUND_CASE_OK termination 12 rounds
+ROUND_CASE_OK determinism
+ROUND_CASE_OK outcome-variety 2 distinct outcomes
+ROUND_CASE_OK behaviour-present plant, fall back, rotate, retake
+ROUND_CASE_OK observed-information-only
+ROUND_CASE_OK bomb-explodes at 43.3s
+ROUND_CASE_OK bomb-defused at 13.2s
+ROUND_CASE_OK defender-facing 76% of killers were in front of the defender
+ROUND_CASE_OK cover-trade-entry-utility
+ROUND_CASE_OK engagement 38% of clear sight lines seen, 22% behind smoke
+ROUND_ALL_OK: termination, determinism, outcome variety, plant and fall back and rotate and retake all occur, observed information only, bomb explodes, bomb defused, defenders face the approach, cover and trade and entry utility all occur, enemies in sight engage.
+﻿

@@ -1,0 +1,8 @@
+﻿SOURCE_MAP_OK de_dust2 verts=122106 tris=239917 areas=2242 links=6275 height=9.3472
+SOURCE_MAP_OK de_mirage verts=44157 tris=73286 areas=2544 links=6381 height=9.651999
+SOURCE_MAP_OK de_nuke verts=46009 tris=89563 areas=3040 links=7676 height=19.1516
+SOURCE_MAP_OK de_vertigo verts=41077 tris=66048 areas=2105 links=5321 height=10.668
+SOURCE_MAP_ALL_OK four real meshes/navs, coordinate heights, directed paths, invalid file rejection
+FAST_FORWARD_ALL_OK prestart, exact .05s round equivalence, score/KDA/economy/ammo, next buy boundary, timeout, cancel, natural AI BO3 + saved KDA
+TOURNAMENT_ALL_OK 8/40, seed, 23-map bracket, BO5 champion, invalid saves, actual map recording, next map reset, two AI coaches, spectator lock, natural combat
+﻿
