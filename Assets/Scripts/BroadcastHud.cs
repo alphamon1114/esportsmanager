@@ -59,6 +59,7 @@ namespace FpsManager
    HudPanel(new Rect(0,0,1600,900),new Color(.025f,.035f,.052f));
    if(PauseMenuOpen){DrawPauseMenu();GUI.matrix=matrix;return;}
    if(menuPage!=0){DrawFrontMenu();GUI.matrix=matrix;return;}
+   if(ShowVictoryCelebration){DrawVictoryCelebration();GUI.matrix=matrix;return;}
    if(tournamentBoard){DrawTournamentBoard();GUI.matrix=matrix;return;}
    if(Stage==MatchStage.Finished){DrawMatchResults();GUI.matrix=matrix;return;}
    var viewport=new Rect(16,80,1316,740);

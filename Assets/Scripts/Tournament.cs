@@ -7,6 +7,7 @@ namespace FpsManager {
  }
  [Serializable] public class MajorBracket {
   public string controlledTeam="spirit";public int version=1;public string[] entrants;public TournamentSeries[] series;public int seed;
+  public bool victoryCelebrationSeen;
   public string Champion {get{return series[6].winner;}}
   public int Next {get{for(int i=0;i<7;i++)if(series[i].Ready)return i;return -1;}}
   public MajorBracket(){}

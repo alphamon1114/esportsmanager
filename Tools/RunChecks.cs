@@ -33,6 +33,7 @@ public static class Harness
             ("SideTacticChecks", SideTacticChecks.Run),
             ("AiCoachChecks", AiCoachChecks.Run),
             ("TournamentChecks", TournamentChecks.Run),
+            ("VictoryCelebrationChecks", VictoryCelebrationChecks.Run),
             ("FrontMenuChecks", FrontMenuChecks.Run),
             ("PauseMenuChecks", PauseMenuChecks.Run),
             ("FastForwardChecks", FastForwardChecks.Run),
