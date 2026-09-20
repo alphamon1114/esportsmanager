@@ -60,12 +60,16 @@ namespace FpsManager {
    SpaceSpawnSlots(ctPositions,sourceArena.CT);SpaceSpawnSlots(tPositions,sourceArena.T);
    layout=new MapLayout{Sites=new[]{Anchor(sourceArena.Sites[0]),Anchor(sourceArena.Sites[1])},SiteNames=new[]{"A","B"},AttackerSpawn=Anchor(sourceArena.T),Mid=Anchor(sourceArena.Mid)};
    layout.Staging=new Vector2[2];layout.HoldRing=new Vector2[2][];layout.Approaches=new Vector2[2][];layout.PeekPost=new Vector2[2][];layout.CoverPost=new Vector2[2][];
+   layout.ForwardWatch=new Vector2[2][];
    for(int site=0;site<2;site++){
     var at=sourceArena.Sites[site];var ctPath=sourceArena.Route(at,sourceArena.CT);var tPath=sourceArena.Route(at,sourceArena.T);
     layout.Staging[site]=Anchor(PointAlong(ctPath,10));layout.Approaches[site]=new[]{Anchor(PointAlong(tPath,9)),Anchor(PointAlong(sourceArena.Route(at,sourceArena.Mid),9))};
+    layout.ForwardWatch[site]=new[]{Anchor(PointAlong(tPath,21)),Anchor(PointAlong(sourceArena.Route(at,sourceArena.Mid),21))};
+    for(int n=0;n<2;n++)if(Vector2.Distance(layout.ForwardWatch[site][n],layout.Approaches[site][n])<4){var mouth=SourceArena.At(layout.Approaches[site][n],GoalFloor(layout.Approaches[site][n],at.y));layout.ForwardWatch[site][n]=Anchor(PointAlong(sourceArena.Route(mouth,sourceArena.T),12));}
     layout.HoldRing[site]=new Vector2[5];for(int i=0;i<5;i++){float angle=i*6.28318f/5;layout.HoldRing[site][i]=Anchor(at+new Vector3(Mathf.Cos(angle)*3,0,Mathf.Sin(angle)*3));}
     layout.PeekPost[site]=new[]{layout.HoldRing[site][0],layout.HoldRing[site][2]};layout.CoverPost[site]=new[]{layout.Staging[site],layout.HoldRing[site][4]};
    }
+   layout.MidForwardWatch=Anchor(PointAlong(sourceArena.Route(sourceArena.Mid,sourceArena.T),12));
    BuildMidEntries();BuildStackCover();
    ctZones[0]=layout.Sites[1];ctZones[1]=layout.Mid;ctZones[2]=layout.Sites[0];tZones[0]=layout.Approaches[1][0];tZones[1]=layout.Mid;tZones[2]=layout.Approaches[0][0];
    layout.FlankRoutes=new[]{new[]{new[]{layout.Approaches[1][0],layout.Mid,layout.Staging[0]},new[]{layout.Mid,layout.Approaches[0][1]}},new[]{new[]{layout.Approaches[0][0],layout.Mid,layout.Staging[1]},new[]{layout.Mid,layout.Approaches[1][1]}}};
@@ -120,10 +124,28 @@ namespace FpsManager {
    if(HudButton(new Rect(map.x+80,y,70,25),"2F",true,!sourceLowerFloor))SetSourceRadar(false);
   }
   Vector2 SourceAimPoint(Vector2 position,Vector2 intended){
-   var start=SourceArena.At(position,MapFloor(position,sourceNavHeight));Vector2 best=position;
+   var start=SourceArena.At(position,MapFloor(position,sourceNavHeight));Vector2 best=position;float score=float.MinValue;
+   var forward=(intended-position).normalized;
    try{var route=sourceArena.Route(start,SourceArena.At(intended,GoalFloor(intended,sourceNavHeight)));
-    foreach(var point in route){if((point-start).magnitude>20)break;if(sourceArena.Sight(start+Vector3.up*1.65f,point+Vector3.up*1.7f)){if((point-start).magnitude>2)best=SourceArena.Flat(point);}else break;}
-   }catch(InvalidOperationException){}return best;
+    // NAV starts at the area's centre, which can be behind the player or
+    // occluded. It is a movement guide, not a reason to stop looking ahead.
+    foreach(var point in route){var flat=SourceArena.Flat(point);var delta=flat-position;float distance=delta.magnitude;
+     if(distance<2||distance>20)continue;float alignment=Vector2.Dot(delta.normalized,forward);
+     float value=alignment*20+Mathf.Min(distance,12)*.2f;
+     if(alignment<=0||value<=score||!navigation.SightClear(position,flat))continue;best=flat;score=value;
+    }
+   }catch(InvalidOperationException){}
+   if(best!=position)return best;
+   // At a tight bend, inspect a clear ray near the intended corridor instead
+   // of returning our own feet (which preserves an arbitrary old facing).
+   foreach(float angle in new[]{0f,30f,-30f,60f,-60f,80f,-80f}){
+    float radians=angle*Mathf.Deg2Rad;var direction=new Vector2(forward.x*Mathf.Cos(radians)-forward.y*Mathf.Sin(radians),forward.x*Mathf.Sin(radians)+forward.y*Mathf.Cos(radians));
+    for(float distance=12;distance>=2;distance-=1){var candidate=position+direction*distance;
+     float value=Vector2.Dot(direction,forward)*20+distance*.2f;
+     if(value<=score||!navigation.SightClear(position,candidate))continue;score=value;best=candidate;
+    }
+   }
+   return best;
   }
   void SourceSpawn(int i){if(sourceArena==null)return;sourceFeet[i]=GoalFloor(MapPosition(i),teamIndex[i]==ctTeam?sourceArena.CT.y:sourceArena.T.y);var p=actors[i].transform.position;p.y=sourceFeet[i]+1;actors[i].transform.position=p;}
   void SourceMoveTo(int i,Vector2 destination){

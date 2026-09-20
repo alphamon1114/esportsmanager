@@ -37,13 +37,14 @@ namespace FpsManager
  }
  public sealed class PreAimPlanner
  {
-  Vector2 anchor,previousGoal,origin;float remaining;bool ready;
+  Vector2 anchor,previousGoal,origin,previousWatch;float remaining;bool ready,wasHolding;PlayerTask previousTask;
   public Vector2 Choose(float dt,Vector2 position,Vector2 facing,PlayerObjective order,List<Vector2> route,int step,DeploymentNavigation navigation)
   {
    remaining-=dt;
-   if(ready&&remaining>0&&Vector2.Distance(origin,position)<4&&Vector2.Distance(previousGoal,order.destination)<4)return anchor;
    var direction=order.watch.sqrMagnitude>.001f?order.watch.normalized:facing;
-   bool holding=(order.task==PlayerTask.DefendSite||order.task==PlayerTask.HoldSite)&&Vector2.Distance(position,order.destination)<8;
+   bool holding=((order.task==PlayerTask.DefendSite||order.task==PlayerTask.HoldSite)&&Vector2.Distance(position,order.destination)<8)||
+    (order.forwardAdvance&&Vector2.Distance(position,order.destination)<3);
+   if(ready&&remaining>0&&holding==wasHolding&&previousTask==order.task&&Vector2.Dot(previousWatch,direction)>.9f&&Vector2.Distance(origin,position)<4&&Vector2.Distance(previousGoal,order.destination)<4&&Vector2.Distance(anchor,position)>3)return anchor;
    var intended=position+direction*16;
    if(!holding&&route!=null&&step<route.Count)
    {
@@ -52,7 +53,10 @@ namespace FpsManager
     if(Vector2.Distance(position,intended)<4)intended=position+direction*12;
    }
    else if(!holding&&order.valid&&Vector2.Distance(position,order.destination)>5)intended=order.destination;
-   anchor=navigation.PreAimCorner(position,intended);origin=position;previousGoal=order.destination;remaining=1.2f;ready=true;return anchor;
+   // The watch vector of a forward post points at an actual map anchor, not
+   // an arbitrary ray endpoint that could project into a different corridor.
+   if(holding&&order.forwardAdvance)intended=position+order.watch;
+   anchor=navigation.PreAimCorner(position,intended);origin=position;previousGoal=order.destination;previousWatch=direction;wasHolding=holding;previousTask=order.task;remaining=1.2f;ready=true;return anchor;
   }
  }
  public sealed partial class CombatSystem

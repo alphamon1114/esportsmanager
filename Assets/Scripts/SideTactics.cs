@@ -80,7 +80,11 @@ namespace FpsManager {
      }else if(DefensePlan==DefenseTactic.Forward&&planPlayers[i].weaponPosition!="awper"&&supportSite[i]<0&&current.task==PlayerTask.DefendSite){
       int rank=0;for(int j=0;j<i;j++)if(teams[j]==ct&&HomeSite(anchors[j])==home&&planPlayers[j].weaponPosition!="awper")rank++;
       var target=home<0?midPoint:layout.Approaches[home][rank%layout.Approaches[home].Length];
-      var advance=PlanOrder(PlayerTask.Patrol,target,target-positions[i]);advance.forwardAdvance=true;objectives[i]=advance;
+      // Keep a world-space approach beyond the post; aiming at the post itself
+      // reverses the view as soon as movement or a peek carries us past it.
+      var watch=home<0?(layout.ForwardWatch!=null?layout.MidForwardWatch:layout.AttackerSpawn):
+       layout.ForwardWatch!=null?layout.ForwardWatch[home][rank%layout.Approaches[home].Length]:target+(target-layout.Sites[home]).normalized*12;
+      var advance=PlanOrder(PlayerTask.Patrol,target,watch-positions[i]);advance.forwardAdvance=true;objectives[i]=advance;
      }else if(DefensePlan==DefenseTactic.Default&&home>=0&&supportSite[i]<0&&current.task==PlayerTask.DefendSite&&BackupThreat(home,ct,teams,vision)==0&&BackupThreat(1-home,ct,teams,vision)>=2){
       var target=layout.Approaches[home][slot[i]%layout.Approaches[home].Length];objectives[i]=PlanOrder(PlayerTask.Patrol,target,target-positions[i],true);
      }

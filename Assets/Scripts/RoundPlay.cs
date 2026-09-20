@@ -45,6 +45,8 @@ namespace FpsManager
         public Vector2[][] StackPost, StackPeek; // two exposed guards, three covered trade posts
         public Vector2[][] HoldRing;   // per site: spread positions around it
         public Vector2[][] Approaches; // per site: the mouths attackers come through
+        public Vector2[][] ForwardWatch; // beyond each mouth, along the attacker's route
+        public Vector2 MidForwardWatch;
         public Vector2[][] PeekPost;   // per site, per approach: holds that mouth
         public Vector2[][] CoverPost;  // per site, per approach: same angle, no line of sight
         public int SiteCount { get { return Sites.Length; } }
