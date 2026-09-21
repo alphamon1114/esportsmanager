@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 namespace FpsManager
 {
     // Local geometry and caller-provided knowledge only; never reads enemy transforms.
@@ -10,6 +10,7 @@ namespace FpsManager
         readonly bool proactive,ambush; readonly float composure;
         float missWindow,evadeCooldown,reaction;
         bool pendingMiss;
+        Vector2 checkedFrom,checkedAngle; float checkedFor;
         Vector2 home,edge,look,goal;
         int phase,pass;
         float timer,total,cooldown;
@@ -35,7 +36,7 @@ namespace FpsManager
         }
         public bool Step(float dt,Vector2 position,PlayerObjective order,Vector2 probe,bool contact,out Vector2 target,out Vector2 watch)
         {
-            target=position; watch=probe-position; cooldown-=dt; evadeCooldown-=dt;
+            target=position; watch=probe-position; cooldown-=dt; evadeCooldown-=dt; checkedFor-=dt;
             missWindow-=dt; reaction-=dt; if(missWindow<=0) pendingMiss=false;
             if(!contact&&!InformationAllowed){phase=0;pendingMiss=false;return false;}
             bool allowed=order.valid&&!order.disengage&&(order.task==PlayerTask.Lurk||order.task==PlayerTask.Patrol||order.task==PlayerTask.MoveToLane||order.task==PlayerTask.PushSite||order.task==PlayerTask.DefendSite||order.task==PlayerTask.HoldSite);
@@ -61,6 +62,8 @@ namespace FpsManager
             if(!Active)
             {
                 if(cooldown>0||(!contact&&!proactive&&order.task!=PlayerTask.PushSite)) return false;
+                // A cleared angle does not justify another identical information peek.
+                if(proactive&&!contact&&checkedFor>0&&Vector2.Distance(position,checkedFrom)<4&&Vector2.Dot((probe-position).normalized,checkedAngle)>.85f)return false;
                 cooldown=.45f+rng.Next01()*.3f;
                 Vector2 forward=(probe-position).normalized;
                 if(forward.sqrMagnitude<.5f) return false;
@@ -82,7 +85,7 @@ namespace FpsManager
                 if(!found) return false;
                 look=probe; goal=order.destination; pass=0; total=0;
                 // Visible combat starts by ducking. Unseen entry starts with a short peek.
-                phase=contact&&!SniperMode||(proactive&&ambush&&!SniperMode)?3:1; timer=0;
+                phase=contact&&!SniperMode?3:1; timer=0;
             }
             if(contact) look=probe; // Follow new team observations, never a stale fixed aim point.
             total+=dt;
@@ -110,8 +113,8 @@ namespace FpsManager
                 if(timer<=0)
                 {
                     if(phase==2) phase=3;
-                    else if(++pass<(SniperMode?1:2)) phase=1;
-                    else { phase=0; Completed++; cooldown=proactive?2+rng.Next01()*3:7+rng.Next01()*3; return false; }
+                    else if(++pass<(SniperMode||(proactive&&!contact)?1:2)) phase=1;
+                    else { phase=0; Completed++; if(proactive&&!contact){checkedFrom=position;checkedAngle=(look-position).normalized;checkedFor=12;} cooldown=proactive?2+rng.Next01()*3:7+rng.Next01()*3; return false; }
                 }
             }
             return true;

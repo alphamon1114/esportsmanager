@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 
 namespace FpsManager
@@ -36,6 +36,7 @@ namespace FpsManager
     // Map specific anchor points. Built by the map code, not hard coded here.
     public sealed class MapLayout
     {
+        public Vector2[] MidPosts;
         public Vector2[][][] FlankRoutes; // per target site, alternate-side and mid routes
         public Vector2 Mid=new Vector2(45,38);
         public Vector2 AttackerSpawn;

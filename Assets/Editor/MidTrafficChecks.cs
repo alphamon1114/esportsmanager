@@ -1,4 +1,4 @@
-﻿using System;using System.Reflection;using System.Collections.Generic;using FpsManager;using UnityEngine;
+using System;using System.Reflection;using System.Collections.Generic;using FpsManager;using UnityEngine;
 public static class MidTrafficChecks {
  static BindingFlags F=BindingFlags.Instance|BindingFlags.NonPublic;
  static object Field(object g,string n){return g.GetType().GetField(n,F).GetValue(g);}
@@ -24,8 +24,21 @@ public static class MidTrafficChecks {
    }
    Debug.Log("MID_GUN_OK "+map);
   }
-  RunMirageQueues();
+  RunMirageQueues();RunInfernoMidQueues();
   Debug.Log("MID_TRAFFIC_ALL_OK");
+ }
+ public static void RunInfernoMidQueues(){
+  foreach(int fps in new[]{60,144}){
+   var g=Game("de_inferno");var actors=(List<GameObject>)Field(g,"actors");var delay=(float[])Field(g,"repathDelay");var posts=g.Director.Layout.MidPosts;
+   for(int i=0;i<5;i++)actors[i].transform.position=new Vector3(i*3,101,0);
+   for(int i=0;i<5;i++)for(int j=0;j<i;j++)Check(Vector2.Distance(posts[i],posts[j])>=1.79f,"Inferno mid posts overlap");
+   for(int frame=0;frame<fps*45;frame++){
+    Call(g,"BeginPlayerMovement");for(int i=5;i<10;i++){delay[i]=Math.Max(0,delay[i]-1f/fps);Call(g,"SourceMoveTo",i,posts[i-5]);Call(g,"SourceStepRoute",i,1f/fps);}Call(g,"ResolvePlayerMovement",1f/fps);
+    if(frame%12==0)for(int i=5;i<10;i++)for(int j=5;j<i;j++)Check(g.PlayerHeight(i)+(g.IsCrouched(i)?1.2f:1.8f)<=g.PlayerHeight(j)||g.PlayerHeight(j)+(g.IsCrouched(j)?1.2f:1.8f)<=g.PlayerHeight(i)||Vector2.Distance(g.MapPosition(i),g.MapPosition(j))>=.995f,"Inferno mid queue overlap");
+   }
+   for(int i=5;i<10;i++)Check(Vector2.Distance(g.MapPosition(i),posts[i-5])<1.1f,"Inferno mid jam fps="+fps+" i="+i+" at="+g.MapPosition(i)+" goal="+posts[i-5]);
+   Debug.Log("INFERNO_MID_QUEUE_OK fps="+fps);
+  }
  }
  public static void RunMirageQueues(){
   foreach(int fps in new[]{60,144}){

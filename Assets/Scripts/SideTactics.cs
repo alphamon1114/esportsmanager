@@ -1,4 +1,4 @@
-﻿using System;using UnityEngine;
+using System;using UnityEngine;
 namespace FpsManager {
  public enum DefenseTactic { Default, Forward, Stack }
  public enum AttackTactic { Default, Rush, MidPlay }
@@ -39,6 +39,7 @@ namespace FpsManager {
   int stackSite,midPhase;float midPhaseAt;bool flankWon;PlayerData[] planPlayers;
   readonly bool[] retreating=new bool[10];readonly float[] rushReadyAt=new float[10];
   Vector2 midPoint {get{return layout.Mid;}}
+  Vector2 MidPost(int i){return layout.MidPosts==null?midPoint:layout.MidPosts[i%layout.MidPosts.Length];}
   public int MidPhase {get{return midPhase;}}
   public void ConfigureSidePlans(bool enabled,DefenseTactic defense,AttackTactic attack,int stack,PlayerData[] players){SidePlansEnabled=enabled;DefensePlan=defense;AttackPlan=attack;stackSite=stack;planPlayers=players;midPhase=0;midPhaseAt=Clock;flankWon=false;Array.Clear(retreating,0,10);Array.Clear(rushReadyAt,0,10);if(enabled&&attack!=AttackTactic.Default)lurker=-1;}
   public void PlanKill(int killer,int victim,Vector2 location,int[] teams,int ct){
@@ -91,9 +92,9 @@ namespace FpsManager {
     }else{
      if(AttackPlan==AttackTactic.MidPlay&&midPhase<2){
       // Three mid players, one watcher at each site. Carrier stays with mid group.
-      bool guard=Vector2.Distance(anchors[i],new Vector2(45,61))>10&&i!=Carrier;
-      if(midPhase==0){var target=guard?anchors[i]:midPoint;objectives[i]=PlanOrder(guard?PlayerTask.HoldSite:PlayerTask.PushSite,target,guard?layout.Sites[NearestSite(target)]-positions[i]:layout.Staging[0]-positions[i],guard);}
-      else {int site=NearestSite(anchors[i]);objectives[i]=guard?PlanOrder(PlayerTask.PushSite,HoldSpot(site,slot[i]),layout.Staging[site]-positions[i]):PlanOrder(PlayerTask.HoldSite,midPoint,layout.Staging[0]-positions[i],true);}
+      bool guard=Vector2.Distance(anchors[i],layout.ForwardWatch==null?new Vector2(45,61):midPoint)>10&&i!=Carrier;
+      if(midPhase==0){var target=guard?anchors[i]:MidPost(i);objectives[i]=PlanOrder(guard?PlayerTask.HoldSite:PlayerTask.PushSite,target,guard?layout.Sites[NearestSite(target)]-positions[i]:layout.Staging[0]-positions[i],guard);}
+      else {int site=NearestSite(anchors[i]);objectives[i]=guard?PlanOrder(PlayerTask.PushSite,HoldSpot(site,slot[i]),layout.Staging[site]-positions[i]):PlanOrder(PlayerTask.HoldSite,MidPost(i),layout.Staging[0]-positions[i],true);}
           }else if(AttackPlan==AttackTactic.Rush){
       var entry=layout.Approaches[TargetSite][0];
       if(rushReadyAt[i]==0&&Vector2.Distance(positions[i],entry)<6)rushReadyAt[i]=Clock;
@@ -101,7 +102,7 @@ namespace FpsManager {
       objectives[i]=PlanOrder(i==Carrier?PlayerTask.PlantBomb:PlayerTask.PushSite,i==Carrier?layout.Sites[TargetSite]:HoldSpot(TargetSite,slot[i]),layout.Staging[TargetSite]-positions[i]);}
      else if(AttackPlan==AttackTactic.Default||midPhase==3){
       if(i==lurker&&!flankWon&&Clock<35){int opposite=1-TargetSite;objectives[i]=PlanOrder(PlayerTask.Lurk,layout.Approaches[opposite][0],layout.Sites[opposite]-positions[i],true);}
-      else if(i!=lurker&&planPlayers[i].weaponPosition=="awper"&&i!=Carrier&&(Clock<18||MidContact(teams[i],teams,vision)))objectives[i]=PlanOrder(PlayerTask.HoldSite,midPoint,layout.Staging[0]-positions[i],true);
+      else if(i!=lurker&&planPlayers[i].weaponPosition=="awper"&&i!=Carrier&&(Clock<18||MidContact(teams[i],teams,vision)))objectives[i]=PlanOrder(PlayerTask.HoldSite,MidPost(i),layout.Staging[0]-positions[i],true);
       else if(i!=lurker)objectives[i]=PlanOrder(i==Carrier?PlayerTask.PlantBomb:PlayerTask.PushSite,i==Carrier?layout.Sites[TargetSite]:HoldSpot(TargetSite,slot[i]),layout.Staging[TargetSite]-positions[i]);
      }
     }

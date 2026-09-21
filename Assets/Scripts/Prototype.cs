@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -712,7 +712,7 @@ namespace FpsManager
                     if(contact)probe=MapPosition(i)+direction;
                 }
                 Vector2 peekTarget,peekWatch;
-                if(combat.Reloading(i)||autonomy.Blinded[i]||combat.Health(i)<40||(clutchUrgent[i]&&combat.FocusTarget(i)<0))
+                if(combat.Reloading(i)||autonomy.Blinded[i]||combat.Health(i)<40||SuppressIdlePeek(i)||(clutchUrgent[i]&&combat.FocusTarget(i)<0))
                 { var cancel=objective; cancel.valid=false; peeking[i].Step(tick,MapPosition(i),cancel,probe,contact,out peekTarget,out peekWatch); }
                 else if(peeking[i].Step(tick,MapPosition(i),objective,probe,contact,out peekTarget,out peekWatch))
                 {

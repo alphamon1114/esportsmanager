@@ -19,7 +19,7 @@ public static class ClutchChecks
    if(active){if(previous)Check(point==search.Point,"scan target jitters within an angle check");point=search.Point;p=Vector2.MoveTowards(p,target,.12f);CombatSystem.TurnTowards(ref facing,point-p,9);}
    previous=active;
   }
-  Check(search.Checks>=4&&search.RearChecks>=1,"clutch did not check multiple angles including rear");
+  Check(search.Checks>=2&&search.RearChecks==0,"clutch performed a speculative rear scan");
   search.Cancel();Check(!search.Active,"clutch scan cancellation failed");
   EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);var g=new GameObject("Clutch checks").AddComponent<Prototype>();g.Initialize();g.StartMatch();g.AdvanceFrame(Prototype.BuySeconds+.01f);
   var actors=(List<GameObject>)typeof(Prototype).GetField("actors",F).GetValue(g);
@@ -44,7 +44,14 @@ public static class ClutchChecks
   var order=new PlayerObjective{valid=true,task=PlayerTask.Retake,destination=g.Director.BombPosition,watch=new Vector2(1,0)};
   Check(!(bool)Call(g,"StepClutchSearch",0,order,.1f),"urgent objective delayed by rear scan");
   g.MatchState(0).equipment=new[]{"awp","desert_eagle"};g.Combat.Equip(0,WeaponCatalog.Find("awp"));Check(!(bool)Call(g,"ClutchRifleSafe",0,rifle),"urgent objective delayed by weapon hunt");
+  typeof(RoundDirector).GetProperty("BombTimer").SetValue(g.Director,40f,null);Call(g,"UpdateClutch",0);
+  Check(!(bool)Call(g,"StepClutchSearch",0,order,.1f),"postplant multi-enemy scan delayed objective");
+  Check((bool)Call(g,"SuppressIdlePeek",0),"postplant idle peek still allowed with multiple enemies");
+  g.Combat.Equip(0,new WeaponProfile{damage=1000});for(int e=6;e<10;e++)typeof(CombatSystem).GetMethod("ApplyHit",F).Invoke(g.Combat,new object[]{0,e,HitRegion.Head});
+  Check((bool)Call(g,"PostPlantDuel",0)&&(bool)Call(g,"SuppressIdlePeek",0),"postplant duel idle peek still allowed");
+  typeof(RoundDirector).GetProperty("PlantedSite").SetValue(g.Director,-1,null);
+  Check(!(bool)Call(g,"SuppressIdlePeek",0),"preplant information peek disabled");
   Call(g,"ResetClutch");Check(!modes[0]&&!urgent[0],"clutch state survived reset");
-  Debug.Log("CLUTCH_ALL_OK deliberate stable angles/rear, normal-team exclusion, last survivor, safe AWP-AR exchange, hidden ammo, sidearm kept, no swap-back, travel/kit deadline, urgent release, reset");
+  Debug.Log("CLUTCH_ALL_OK stable forward angles, no speculative rear, postplant objective priority, normal-team exclusion, last survivor, safe AWP-AR exchange, hidden ammo, sidearm kept, no swap-back, travel/kit deadline, urgent release, reset");
  }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using FpsManager;
@@ -32,6 +32,9 @@ public static class PreAimChecks
     }
     Check(exposed&&returned&&peek.Completed>0,"no-contact hold/lurk never checked and hid");
     if(calm==20)hiddenLow+=hidden;else hiddenHigh+=hidden;
+    int completed=peek.Completed;
+    for(int n=0;n<180;n++){Vector2 next,look;bool active=peek.Step(.05f,at,order,probe,false,out next,out look);Check(!active,"repeated a recently checked unchanged angle");}
+    Check(peek.Completed==completed,"empty angle repeated without new evidence");
     Vector2 t,w;order.task=PlayerTask.Defuse;Check(!peek.Step(.1f,at,order,probe,false,out t,out w),"info peek delayed urgent objective");
    }
   Check(hiddenHigh>hiddenLow,"composure did not extend hidden wait");

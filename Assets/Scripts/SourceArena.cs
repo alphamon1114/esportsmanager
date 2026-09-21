@@ -1,4 +1,4 @@
-﻿using System;using System.IO;using System.Collections.Generic;using UnityEngine;
+using System;using System.IO;using System.Collections.Generic;using UnityEngine;
 namespace FpsManager {
  // Runtime source geometry and directed, height-aware navigation. All coordinates remain metres.
  public sealed class SourceArena {
@@ -42,7 +42,7 @@ namespace FpsManager {
 
    triangles=new int[Mesh.triangles.Length/3];for(int n=0;n<triangles.Length;n++)triangles[n]=n;root=Build(0,triangles.Length);
    // Anchor seeds from public observer/spawn coordinates, snapped onto this NAV revision.
-   if(id=="de_inferno"){CT=Seed(2353,1977,199);T=Seed(-1650,718,0);Sites=new[]{Seed(2060.5105f,422.71582f,160.03125f),Seed(176.47f,2768.02f,164.03f)};Mid=Seed(1100,1100,140);}
+   if(id=="de_inferno"){CT=Seed(2353,1977,199);T=Seed(-1650,718,0);Sites=new[]{Seed(2060.5105f,422.71582f,160.03125f),Seed(176.47f,2768.02f,164.03f)};Mid=Seed(1300,800,128); /* Mid corridor; old seed snapped from a building to a tight corner. */}
    else if(id=="de_dust2"){CT=Seed(235,2250,-120);T=Seed(-800,-800,120);Sites=new[]{Seed(1120,2450,100),Seed(-1600,2650,35)};Mid=Seed(-450,1400,0);}
    else if(id=="de_mirage"){CT=Seed(-1776,-1976,-202);T=Seed(1296,-160,-104);Sites=new[]{Seed(-400,-2000,-170),Seed(-2000,230,-160)};Mid=Seed(-350,-650,-165);}
    else if(id=="de_nuke"){CT=Seed(2552,-424,-288);T=Seed(-1808,-1089,-352);Sites=new[]{Seed(650,-550,-415),Seed(650,-1000,-775)};Mid=Seed(600,-1600,-415);}

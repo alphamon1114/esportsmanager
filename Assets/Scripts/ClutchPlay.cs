@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 namespace FpsManager
@@ -11,7 +11,7 @@ namespace FpsManager
   public bool Active {get{return phase!=0;}}
   public int Checks {get;private set;}
   public int RearChecks {get;private set;}
-  public void Cancel(){phase=0;cooldown=.7f;}
+  public void Cancel(){phase=0;cooldown=3f;}
   public bool Step(float dt,Vector2 position,Vector2 facing,Vector2 forward,DeploymentNavigation nav,out Vector2 target,Vector2? cue=null)
   {
    target=position;cooldown-=dt;
@@ -19,7 +19,7 @@ namespace FpsManager
    {
     if(cooldown>0)return false;
     if(forward.sqrMagnitude<.1f)forward=facing;
-    float angle=(index==0?-35:index==1?35:index==2?180:0)*Mathf.Deg2Rad;
+    float angle=(index==0?-35:index==1?35:0)*Mathf.Deg2Rad;
     var direction=new Vector2(forward.x*Mathf.Cos(angle)-forward.y*Mathf.Sin(angle),forward.x*Mathf.Sin(angle)+forward.y*Mathf.Cos(angle)).normalized;
     var intended=cue.HasValue?cue.Value:nav.PreAimCorner(position,position+direction*14);
     home=edge=position;Point=intended;
@@ -32,10 +32,10 @@ namespace FpsManager
      if(!exposed)Point=nav.VisibleAimPoint(position,intended);
     }
     if(Vector2.Dot((Point-position).normalized,forward.normalized)<0)edge=home;
-    if(Vector2.Distance(Point,position)<1){index=(index+1)%4;cooldown=.5f;return false;}
+    if(Vector2.Distance(Point,position)<1){index=(index+1)%3;cooldown=.5f;return false;}
     phase=1;held=elapsed=0;
    }
-   elapsed+=dt;if(elapsed>3.5f){Cancel();index=(index+1)%4;return false;}
+   elapsed+=dt;if(elapsed>3.5f){Cancel();index=(index+1)%3;return false;}
    target=phase==1?edge:home;
    // Never leave cover while looking away from the angle being opened.
    if(phase==1&&Vector2.Dot(facing.normalized,(Point-position).normalized)<.97f)target=position;
@@ -46,7 +46,7 @@ namespace FpsManager
     if(Vector2.Dot(facing.normalized,(Point-position).normalized)>.985f)held+=dt;
     if(held>=.4f)phase=2;
    }
-   else {Checks++;if(index==2)RearChecks++;index=(index+1)%4;Cancel();return false;}
+   else {Checks++;if(Vector2.Dot((Point-home).normalized,forward.normalized)<0)RearChecks++;index=(index+1)%3;Cancel();return false;}
    return true;
   }
  }
@@ -82,8 +82,12 @@ namespace FpsManager
    clutchUrgent[i]=clutchMode[i]&&ClutchSpareTime(i)<=5;
    if(!clutchMode[i]||clutchUrgent[i]||combat.FocusTarget(i)>=0||combat.Spamming(i))clutchSearch[i].Cancel();
   }
+  bool PostPlantDuel(int i){return AutomaticMatch&&director.PlantedSite>=0&&combat.LivingCount(teamIndex,teamIndex[i])==1&&combat.LivingCount(teamIndex,1-teamIndex[i])==1;}
+  bool SuppressIdlePeek(int i){return AutomaticMatch&&director.PlantedSite>=0&&!HasDirectFight(i);}
   bool StepClutchSearch(int i,PlayerObjective order,float dt)
   {
+   // Post-plant play follows the objective and evidence, never the scripted rear-scan cycle.
+   if(director.PlantedSite>=0){clutchSearch[i].Cancel();return false;}
    if(!clutchMode[i]||clutchUrgent[i]||!order.valid||order.disengage||combat.FocusTarget(i)>=0||combat.Spamming(i)||autonomy.Blinded[i]||combat.Reloading(i)){clutchSearch[i].Cancel();return false;}
    if((director.Carrier==i&&director.PlantProgress>0)||(director.Defuser==i&&director.DefuseProgress>0)){clutchSearch[i].Cancel();return false;}
    if(Mathf.Abs(PlayerHeight(i)-MapFloor(MapPosition(i),PlayerHeight(i)))>.4f)return false;

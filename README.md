@@ -1456,3 +1456,17 @@ powershell -File Tools/RunChecks.ps1 -Mode Balance
 - `SafeReloadChecks`: 노출된 장전 거절, 실제 벽 뒤로 이동한 후 장전, 장전 중 자리 유지, 탄창 1개만 소모, 정보상 안전한 장전, 라운드 상태 초기화. 전체 headless 실행 목록은 53개 묶음이다. 기존 BeginDeployment 테스트 동작은 유지한다.
 
 최종 검증: MidTrafficChecks(5개 맵 입구 및 미라지 60/144 FPS), CtOpeningChecks(뉴크 60/144 FPS), PlayerTrafficChecks(버티고 60/144 FPS × 3시드), MovementCooperationChecks(5개 맵 엄폐·스택 이동·점프), SafeReloadChecks, MagazineChecks, EquipmentExchangeChecks 통과. CombatChecks/ RoundChecks의 fairness·aim-at-range·behaviour-present도 통과했다. 최종 Unity 컴파일 성공. 전체 53개 묶음을 다시 실행하지는 않았으며, 관련 검사 결과는 docs/measurements/mid-traffic-reload/에 기록했다.
+
+## 81. 불필요한 피킹 축소·인페르노 T 미드 정체 (2026-09-21)
+
+- 클러치의 고정 순환에서 180도 뒤 확인을 제거하고 탐색 간격을 0.7초에서 3초로 늘렸다. 소리·피격·시각 정보에 따른 방향 전환은 유지한다. C4 설치 후에는 순환 탐색을 중단하고 목표 이동과 교전을 수행한다.
+- 설치 후에는 인원수와 관계없이 직접 교전 중이 아닌 일반 반복 피킹을 억제한다. 1대1의 마지막 적 정보는 이동 가능 범위상 아직 유효한 경우 프리에임에 사용한다. 실제 적의 숨겨진 현재 위치는 참조하지 않는다.
+- 일반 정보 피킹은 한 번 노출·복귀한 뒤, 4m 이내의 같은 자리에서 같은 방향을 12초 동안 다시 확인하지 않는다. 새로운 접촉이나 위치·각 변화는 예외이며 교전 중 미스샷 회피는 유지한다. BeginDeployment의 기존 비자동 검사 경로는 유지한다.
+- 인페르노의 기존 미드 원본 좌표 (1100,1100,140)는 건물 쪽에서 좁은 모서리로 NAV 보정되었다. 실제 NAV 통로를 확인해 (1300,800,128)로 옮겼다. 인페르노 T 미드 목표는 1.8m 이상 떨어진 5개 지점으로 나눴다. 다른 맵의 대기 지점 생성은 바꾸지 않았다.
+- 실제 맵의 미드플레이 인원 분류가 더미 맵 좌표 (45,61)를 참조하던 오류를 수정했다. 원본 맵은 각 맵의 Mid를 사용하고, 기존 더미 맵은 이전 배치 좌표를 유지한다.
+- 미드 진입 중 상자 위 NAV 중심을 불필요하게 경유하다 충돌하는 상황을 재현했다. 다음 12개 경유점 중 6m 이내·높이차 0.35m 이내의 연결된 바닥 경로가 NAV·시야·몸통 검사에 통과하면 가까운 우회 경유점을 사용한다. 몸 충돌을 무시하거나 순간이동하지 않으며 점프 중에는 이 처리를 하지 않는다.
+- 추가 회귀 검사: 최근 확인한 각의 반복 억제, 클러치의 근거 없는 후방 탐색 제거, 설치 후 1대1/다수 상대의 탐색 억제, 인페르노 T 5인 미드 도착 및 몸 간격(60/144FPS). 초기 조건부 우회 버전은 정체가 재발해 폐기했고, 최종 근거리 경로 확인 버전으로 인페르노·미라지 60/144FPS 검사를 통과했다.
+
+검증: ClutchChecks, PreAimChecks, ThreatChecks, SideTacticChecks 통과. CombatChecks의 fairness·aim-at-range 및 RoundChecks의 behaviour-present 통과. 최종 MidTrafficChecks(5개 맵 총기 경계, 인페르노/미라지 대기열 60/144FPS), PlayerTrafficChecks(버티고 60/144FPS × 3시드) 통과. 전체 검사 묶음을 재실행한 것은 아니다. 최종 경로·충돌 로그는 docs/measurements/postplant-mid/에 저장했다.
+
+웹 실행 검증에서 CreatePrimitive가 내부적으로 생성하는 BoxCollider가 빌드 최적화 중 제거되는 문제를 발견했다. Assets/link.xml로 기본 모델의 MeshFilter/MeshRenderer 및 Box/Sphere/Capsule/MeshCollider를 보존한다.

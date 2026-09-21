@@ -73,6 +73,8 @@ namespace FpsManager
    Vector2 threat;if(UnifiedRoundAim&&ImmediateCue(i,out threat))return threat-MapPosition(i);
    if(UnifiedRoundAim&&combat.Spamming(i))return combat.SuppressionPoint(i)-MapPosition(i);
    if(UnifiedRoundAim&&clutchSearch[i]!=null&&clutchSearch[i].Active)return clutchSearch[i].Point-MapPosition(i);
+   // Keep constrained last-seen information useful after the short visual contact expires.
+   if(UnifiedRoundAim&&PostPlantDuel(i)&&ClutchKnownCue(i,out threat))fallback=navigation.VisibleAimPoint(MapPosition(i),threat);
    movementAim[i].LocalThreatPriority=AutomaticMatch;
    return movementAim[i].Choose(i,MapPosition(i),fallback,teamIndex,vision);
   }

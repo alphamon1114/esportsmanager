@@ -1,4 +1,4 @@
-﻿using System;using System.Collections.Generic;using UnityEngine;
+using System;using System.Collections.Generic;using UnityEngine;
 namespace FpsManager {
  public partial class Prototype {
   SourceArena sourceArena;float sourceNavHeight;string loadedMapId="legacy_inferno";bool quickSeriesSetup;
@@ -70,17 +70,19 @@ namespace FpsManager {
     layout.PeekPost[site]=new[]{layout.HoldRing[site][0],layout.HoldRing[site][2]};layout.CoverPost[site]=new[]{layout.Staging[site],layout.HoldRing[site][4]};
    }
    layout.MidForwardWatch=Anchor(PointAlong(sourceArena.Route(sourceArena.Mid,sourceArena.T),12));
+   if(sourceArena.Id=="de_inferno"){layout.MidPosts=new Vector2[5];for(int i=0;i<5;i++)layout.MidPosts[i]=layout.Mid;
+   SpaceSpawnSlots(layout.MidPosts,sourceArena.Mid,1.8f);}
    BuildMidEntries();BuildStackCover();
    ctZones[0]=layout.Sites[1];ctZones[1]=layout.Mid;ctZones[2]=layout.Sites[0];tZones[0]=layout.Approaches[1][0];tZones[1]=layout.Mid;tZones[2]=layout.Approaches[0][0];
    layout.FlankRoutes=new[]{new[]{new[]{layout.Approaches[1][0],layout.Mid,layout.Staging[0]},new[]{layout.Mid,layout.Approaches[0][1]}},new[]{new[]{layout.Approaches[0][0],layout.Mid,layout.Staging[1]},new[]{layout.Mid,layout.Approaches[1][1]}}};
   }
-  void SpaceSpawnSlots(Vector2[] slots,Vector3 center){
+  void SpaceSpawnSlots(Vector2[] slots,Vector3 center,float spacing=1.1f){
    for(int i=0;i<slots.Length;i++){
-    bool clear=true;for(int j=0;j<i;j++)if(Vector2.Distance(slots[i],slots[j])<1.1f)clear=false;if(clear)continue;
+    bool clear=true;for(int j=0;j<i;j++)if(Vector2.Distance(slots[i],slots[j])<spacing)clear=false;if(clear)continue;
     bool found=false;for(int ring=1;ring<=10&&!found;ring++)for(int n=0;n<24&&!found;n++){
      float angle=n*Mathf.PI/12;var p=sourceArena.Snap(center+new Vector3(Mathf.Cos(angle)*ring*.65f,0,Mathf.Sin(angle)*ring*.65f));var flat=SourceArena.Flat(p);
      if(Mathf.Abs(p.y-center.y)>.6f||!sourceArena.Sight(center+Vector3.up,p+Vector3.up))continue;clear=true;
-     for(int j=0;j<i;j++)if(Vector2.Distance(flat,slots[j])<1.1f)clear=false;
+     for(int j=0;j<i;j++)if(Vector2.Distance(flat,slots[j])<spacing)clear=false;
      if(clear){slots[i]=Anchor(p);found=true;}
     }
     if(!found)throw new InvalidOperationException("No separated spawn slots: "+ActiveMapId);
@@ -166,6 +168,16 @@ namespace FpsManager {
     var feet=actors[i].transform.position-Vector3.up;var guide=sourceRoutes[i][routeSteps[i]];
     if((feet-guide).magnitude>PlayerCollision.Diameter*.55f||!sourceArena.Sight(feet+Vector3.up*.8f,sourceRoutes[i][routeSteps[i]+1]+Vector3.up*.8f))break;
     routeSteps[i]++;
+   }
+   // Avoid climbing an unnecessary NAV centre when a nearby connected ground route is clear.
+   // This also lets a queue pass a guide occupied by a teammate, without ignoring body collision.
+   if(AutomaticMatch&&!sourceJumping[i]){
+    var feet=actors[i].transform.position-Vector3.up;
+    for(int n=Math.Min(routeSteps[i]+12,sourceRoutes[i].Count-1);n>routeSteps[i];n--){
+     var next=sourceRoutes[i][n];
+     if((next-feet).magnitude>6||Mathf.Abs(next.y-feet.y)>.35f||!sourceArena.WalkClear(feet,next)||!SourceHullClear(feet,next,IsCrouched(i)?1.2f:1.8f))continue;
+     routeSteps[i]=n;break;
+    }
    }
    if(AutomaticMatch&&PrepareSourceTraversal(i,dt))return;
    // NAV area centers are guides, not mandatory one-person stopping points.
